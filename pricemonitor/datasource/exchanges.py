@@ -5,8 +5,10 @@ from enum import Enum
 
 import ccxt.async as ccxt
 
+log = logging.getLogger(__name__)
 
-class ExchangeNames(Enum):
+
+class ExchangeName(Enum):
     BINANCE = ccxt.binance
     BITTREX = ccxt.bittrex
 
@@ -15,15 +17,33 @@ def time_last_minute_in_millis_since_epoch():
     return int(round(time.time() * 1_000)) - 60_000
 
 
+class ExchangeError(Exception):
+    def __init__(self, msg):
+        self._msg = msg
+
+    def __repr__(self):
+        return repr(self._msg)
+
+
 class Exchange:
     def __init__(self, exchange):
         self._exchange = exchange
 
-    async def get_last_trade(self, coin, market):
-        return await self._exchange.fetch_trades(symbol=f'{coin}/{market}', limit=1)
+    async def get_last_trade_price(self, coin, market):
+        try:
+            trades = await self._exchange.fetch_trades(symbol=f'{coin}/{market}', limit=1)
+            return trades[0]['price']
+        except ccxt.ExchangeError as e:
+            log.warning(e)
+            return None
 
     async def get_trades_average(self, coin, market, limit=None, since=None):
-        trades = await self._exchange.fetch_trades(symbol=f'{coin}/{market}', limit=limit, since=since)
+        try:
+            trades = await self._exchange.fetch_trades(symbol=f'{coin}/{market}', limit=limit, since=since)
+        except ccxt.ExchangeError as e:
+            log.warning(e)
+            return None
+
         prices = [
             trade['price']
             for trade in trades
@@ -36,7 +56,11 @@ class Exchange:
 
     async def get_last_trades_average_or_last_trade(self, coin, market):
         last_trades_average = await self.get_average_of_trades_last_minute(coin, market)
-        return last_trades_average if last_trades_average is not None else self.get_last_trade(coin, market)
+
+        if last_trades_average is not None:
+            return last_trades_average
+
+        return await self.get_last_trade_price(coin, market)
 
     @staticmethod
     def get_exchange(name):
@@ -44,7 +68,7 @@ class Exchange:
 
 
 async def _test(loop):
-    binance = Exchange.get_exchange(ExchangeNames.BITTREX)
+    binance = Exchange.get_exchange(ExchangeName.BITTREX)
     for i in range(20):
         print(await binance.get_last_trades_average_or_last_trade(coin='OMG', market='ETH'))
         await asyncio.sleep(1)
