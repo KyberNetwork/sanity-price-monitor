@@ -9,6 +9,8 @@ name = "pypi"
 
 aiohttp = "*"
 pyyaml = "*"
+rx = "*"
+ccxt = "*"
 
 
 [dev-packages]
