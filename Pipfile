@@ -8,8 +8,7 @@ name = "pypi"
 [packages]
 
 aiohttp = "*"
-pyyaml = "*"
-rx = "*"
+PyYAML = "*"
 ccxt = "*"
 
 
