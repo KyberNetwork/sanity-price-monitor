@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 
-from pricemonitor.monitoring.exchangeprices import ExchangePriceMonitor
+from pricemonitor.monitoring.exchange_prices import ExchangePriceMonitor
 
 CONFIGURATION_FILE_PATH = '../smart-contracts/deployment_dev.json'
 
