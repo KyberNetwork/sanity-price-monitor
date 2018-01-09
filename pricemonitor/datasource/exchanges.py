@@ -5,6 +5,7 @@ from enum import Enum
 
 import ccxt.async as ccxt
 
+logging.basicConfig(level=logging.ERROR)
 log = logging.getLogger(__name__)
 
 
