@@ -2,13 +2,7 @@ import asyncio
 import time
 
 from pricemonitor.datasource.exchanges import Exchange, ExchangeName
-
-
-def _calculate_average(values):
-    try:
-        return sum(values) / len(values)
-    except ZeroDivisionError:
-        return None
+from util.calculations import calculate_average
 
 
 def calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds):
@@ -18,26 +12,30 @@ def calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds):
 
 
 class ExchangePriceMonitor:
-    def __init__(self, coins, market):
+    def __init__(self, coins, market, exchanges=None):
+        if exchanges is None:
+            exchanges = [ExchangeName.BINANCE, ExchangeName.BITTREX]
+
         self._coins = coins
         self._market = market
         self._exchanges = [
             Exchange.get_exchange(name)
-            for name in [ExchangeName.BINANCE, ExchangeName.BITTREX]
+            for name in exchanges
         ]
 
-    async def monitor(self, price_update_handler, interval_in_milliseconds, loop):
+    async def monitor(self, exchange_data_action, monitor_action, interval_in_milliseconds, loop):
         while True:
             start_time = time.time()
 
-            coin_prices = await self._get_coin_prices(self._coins, self._market, loop)
-            price_update_handler(coin_prices)
+            coin_prices = await self._get_coin_prices(
+                coins=self._coins, market=self._market, loop=loop, exchange_data_action=exchange_data_action)
+            monitor_action.act(coin_prices)
 
             await asyncio.sleep(calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds), loop=loop)
 
-    async def _get_coin_prices(self, coins, market, loop):
+    async def _get_coin_prices(self, coins, market, loop, exchange_data_action):
         coin_prices_calculations = [
-            self._get_average_price(coin, market, loop)
+            self._get_average_price(coin=coin, market=market, loop=loop, exchange_data_action=exchange_data_action)
             for coin in coins
         ]
         coin_prices = await asyncio.gather(
@@ -45,9 +43,9 @@ class ExchangePriceMonitor:
         return coin_prices
 
     # TODO: filter pairs that are not traded on the exchange
-    async def _get_average_price(self, coin, market, loop):
+    async def _get_average_price(self, coin, market, loop, exchange_data_action):
         exchange_api_calls = (
-            exchange.get_last_trades_average_or_last_trade(coin=coin, market=market)
+            exchange_data_action(exchange, coin=coin, market=market)
             for exchange in self._exchanges
         )
         coin_prices_from_all_exchanges = [
@@ -56,4 +54,4 @@ class ExchangePriceMonitor:
             if price is not None
         ]
 
-        return (coin, market), _calculate_average(coin_prices_from_all_exchanges)
+        return (coin, market), calculate_average(coin_prices_from_all_exchanges)

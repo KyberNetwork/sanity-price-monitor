@@ -1,9 +1,10 @@
 import asyncio
 import logging
-import time
 from enum import Enum
 
 import ccxt.async as ccxt
+
+from util.time import minutes_ago_in_millis_since_epoch
 
 logging.basicConfig(level=logging.ERROR)
 log = logging.getLogger(__name__)
@@ -12,10 +13,6 @@ log = logging.getLogger(__name__)
 class ExchangeName(Enum):
     BINANCE = ccxt.binance
     BITTREX = ccxt.bittrex
-
-
-def time_last_minute_in_millis_since_epoch():
-    return int(round(time.time() * 1_000)) - 60_000
 
 
 class ExchangeError(Exception):
@@ -32,7 +29,7 @@ class Exchange:
 
     async def get_last_trade_price(self, coin, market):
         try:
-            trades = await self._exchange.fetch_trades(symbol=f'{coin}/{market}', limit=1)
+            trades = await self._exchange.fetch_trades(symbol=_prepare_symbol(coin, market), limit=1)
             return trades[0]['price']
         except ccxt.ExchangeError as e:
             log.warning(e)
@@ -40,7 +37,7 @@ class Exchange:
 
     async def get_trades_average(self, coin, market, limit=None, since=None):
         try:
-            trades = await self._exchange.fetch_trades(symbol=f'{coin}/{market}', limit=limit, since=since)
+            trades = await self._exchange.fetch_trades(symbol=_prepare_symbol(coin, market), limit=limit, since=since)
         except ccxt.ExchangeError as e:
             log.warning(e)
             return None
@@ -53,9 +50,9 @@ class Exchange:
 
     async def get_average_of_trades_last_minute(self, coin, market):
         return await self.get_trades_average(
-            coin=coin, market=market, since=time_last_minute_in_millis_since_epoch())
+            coin=coin, market=market, since=minutes_ago_in_millis_since_epoch(1))
 
-    async def get_last_trades_average_or_last_trade(self, coin, market):
+    async def get_last_minute_trades_average_or_last_trade(self, coin, market):
         last_trades_average = await self.get_average_of_trades_last_minute(coin, market)
 
         if last_trades_average is not None:
@@ -63,15 +60,38 @@ class Exchange:
 
         return await self.get_last_trade_price(coin, market)
 
+    async def get_volatility(self, coin, market):
+        """ Calculates the change (in percentage) between the max and min price over previous 2 minutes """
+        try:
+            trades_last_two_minutes = await self._exchange.fetch_trades(
+                symbol=_prepare_symbol(coin, market), since=minutes_ago_in_millis_since_epoch(2))
+        except ccxt.ExchangeError as e:
+            log.warning(e)
+            return None
+
+        if not trades_last_two_minutes:
+            log.info(f"No trades for {coin}/{market} in {self._exchange.name} during past 2 minutes")
+            return 0
+
+        trade_prices = [trade['price'] for trade in trades_last_two_minutes]
+
+        max_price = max(trade_prices)
+        min_price = min(trade_prices)
+        return abs((max_price - min_price) / max_price) * 100
+
     @staticmethod
     def get_exchange(name):
         return Exchange(name.value())
 
 
+def _prepare_symbol(coin, market):
+    return f'{coin}/{market}'
+
+
 async def _test(loop):
     binance = Exchange.get_exchange(ExchangeName.BITTREX)
     for i in range(20):
-        print(await binance.get_last_trades_average_or_last_trade(coin='OMG', market='ETH'))
+        print(await binance.get_last_minute_trades_average_or_last_trade(coin='OMG', market='ETH'))
         await asyncio.sleep(1)
 
 

@@ -1,41 +1,36 @@
 import asyncio
-import json
 import logging
+from collections import namedtuple
+from enum import Enum
 
+from pricemonitor.config import Config
+from pricemonitor.datasource.exchanges import Exchange
 from pricemonitor.monitoring.exchange_prices import ExchangePriceMonitor
+from pricemonitor.monitoring.monitor_actions import PrintValuesMonitor, PrintValuesAndAverageMonitor
 
-CONFIGURATION_FILE_PATH = '../smart-contracts/deployment_dev.json'
-
-MARKET = 'ETH'
-
-MONITOR_INTERVAL_IN_MILLISECONDS = 5_000
-
-async def main(loop):
-    config = load_config()
-
-    market = MARKET
-    coins = [
-        coin
-        for coin in config['tokens']
-        if coin != MARKET
-    ]
-
-    monitor = ExchangePriceMonitor(coins, market)
-    await monitor.monitor(price_update_handler=print_prices, interval_in_milliseconds=MONITOR_INTERVAL_IN_MILLISECONDS,
-                          loop=loop)
+Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_millis')
 
 
-def print_prices(prices):
-    printable_prices = [
-        f"{pair}: {price:10.5}"
-        for pair, price in prices
-    ]
-    print('\t'.join(printable_prices))
+class Tasks(Enum):
+    AVERAGE_LAST_MINUTE = Task(
+        exchange_data_action=Exchange.get_last_minute_trades_average_or_last_trade,
+        monitor_action=PrintValuesMonitor,
+        interval_in_millis=5_000)
+
+    VOLATILITY_EVERY_TWO_MINUTES = Task(
+        exchange_data_action=Exchange.get_volatility,
+        monitor_action=PrintValuesAndAverageMonitor,
+        interval_in_millis=(2 * 60 * 1_000))
 
 
-def load_config():
-    with open(CONFIGURATION_FILE_PATH) as config_file:
-        return json.load(config_file)
+async def main(task, loop):
+    config = Config()
+    monitor = ExchangePriceMonitor(config.coins, config.market)
+    await monitor.monitor(
+        monitor_action=task.value.monitor_action(),
+        interval_in_milliseconds=task.value.interval_in_millis,
+        loop=loop,
+        exchange_data_action=task.value.exchange_data_action)
 
 
 if __name__ == '__main__':
@@ -48,4 +43,5 @@ if __name__ == '__main__':
     # finally:
     #     log.info('Closing event loop')
     #     loop.close()
-    loop.run_until_complete(main(loop))
+    # loop.run_until_complete(main(Tasks.AVERAGE_LAST_MINUTE, loop))
+    loop.run_until_complete(main(Tasks.VOLATILITY_EVERY_TWO_MINUTES, loop))
