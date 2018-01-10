@@ -15,14 +15,6 @@ class ExchangeName(Enum):
     BITTREX = ccxt.bittrex
 
 
-class ExchangeError(Exception):
-    def __init__(self, msg):
-        self._msg = msg
-
-    def __repr__(self):
-        return repr(self._msg)
-
-
 class Exchange:
     def __init__(self, exchange):
         self._exchange = exchange
@@ -31,14 +23,14 @@ class Exchange:
         try:
             trades = await self._exchange.fetch_trades(symbol=_prepare_symbol(coin, market), limit=1)
             return trades[0]['price']
-        except ccxt.ExchangeError as e:
+        except Exception as e:
             log.warning(e)
             return None
 
     async def get_trades_average(self, coin, market, limit=None, since=None):
         try:
             trades = await self._exchange.fetch_trades(symbol=_prepare_symbol(coin, market), limit=limit, since=since)
-        except ccxt.ExchangeError as e:
+        except Exception as e:
             log.warning(e)
             return None
 
@@ -60,20 +52,20 @@ class Exchange:
 
         return await self.get_last_trade_price(coin, market)
 
-    async def get_volatility(self, coin, market):
-        """ Calculates the change (in percentage) between the max and min price over previous 2 minutes """
+    async def get_volatility(self, coin, market, time_period):
+        """ Calculates the change (in percentage) between the max and min price over previous X minutes """
         try:
-            trades_last_two_minutes = await self._exchange.fetch_trades(
-                symbol=_prepare_symbol(coin, market), since=minutes_ago_in_millis_since_epoch(2))
-        except ccxt.ExchangeError as e:
+            trades = await self._exchange.fetch_trades(
+                symbol=_prepare_symbol(coin, market), since=minutes_ago_in_millis_since_epoch(time_period))
+        except Exception as e:
             log.warning(e)
             return None
 
-        if not trades_last_two_minutes:
-            log.info(f"No trades for {coin}/{market} in {self._exchange.name} during past 2 minutes")
+        if not trades:
+            log.info(f"No trades for {coin}/{market} in {self._exchange.name} during past {time_period} minutes")
             return 0
 
-        trade_prices = [trade['price'] for trade in trades_last_two_minutes]
+        trade_prices = [trade['price'] for trade in trades]
 
         max_price = max(trade_prices)
         min_price = min(trade_prices)

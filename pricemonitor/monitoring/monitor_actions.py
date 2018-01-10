@@ -42,4 +42,5 @@ class PrintValuesAndAverageMonitor(PrintValuesMonitor):
 
     def _save_data(self, data):
         for pair, price in data:
-            self._all_data[pair].append(price)
+            if price is not None:
+                self._all_data[pair].append(price)

@@ -2,6 +2,7 @@ import asyncio
 import logging
 from collections import namedtuple
 from enum import Enum
+from functools import partial
 
 from pricemonitor.config import Config
 from pricemonitor.datasource.exchanges import Exchange
@@ -17,10 +18,10 @@ class Tasks(Enum):
         monitor_action=PrintValuesMonitor,
         interval_in_millis=5_000)
 
-    VOLATILITY_EVERY_TWO_MINUTES = Task(
-        exchange_data_action=Exchange.get_volatility,
+    VOLATILITY_EVERY_THIRTY_SECONDS = Task(
+        exchange_data_action=partial(Exchange.get_volatility, time_period=4),
         monitor_action=PrintValuesAndAverageMonitor,
-        interval_in_millis=(2 * 60 * 1_000))
+        interval_in_millis=(30 * 1_000))
 
 
 async def main(task, loop):
@@ -44,4 +45,4 @@ if __name__ == '__main__':
     #     log.info('Closing event loop')
     #     loop.close()
     # loop.run_until_complete(main(Tasks.AVERAGE_LAST_MINUTE, loop))
-    loop.run_until_complete(main(Tasks.VOLATILITY_EVERY_TWO_MINUTES, loop))
+    loop.run_until_complete(main(Tasks.VOLATILITY_EVERY_THIRTY_SECONDS, loop))
