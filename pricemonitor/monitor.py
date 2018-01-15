@@ -38,7 +38,8 @@ if __name__ == '__main__':
     log = logging.getLogger('main')
     log.debug('Starting event loop')
     loop = asyncio.get_event_loop()
-    # TODO: ccxt raises exceptions when the code runs from inside a try-finally for some reason - https://github.com/ccxt/ccxt/issues/345
+    # TODO: ccxt raises exceptions when the code runs from inside a try-finally for some reason:
+    # https://github.com/ccxt/ccxt/issues/345
     # try:
     #     loop.run_until_complete(main(loop))
     # finally:
