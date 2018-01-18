@@ -4,12 +4,13 @@ from time import time
 import pytest
 from ccxt.base.errors import ExchangeError
 
+from pricemonitor.config import Coin
 from pricemonitor.datasource.exchanges import Exchange, ExchangeName
 
 logging.disable(logging.WARNING)
 
-COIN = 'KNC'
-MARKET = 'ETH'
+COIN = Coin(symbol='KNC', address='0x000', name='KyberNetworkCrystal')
+MARKET = Coin(symbol='ETH', address='0x001', name='Ether')
 
 
 class CcxtExchangeWithSomeTrades:

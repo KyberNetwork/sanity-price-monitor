@@ -1,21 +1,35 @@
 import json
+from collections import namedtuple
 
-CONFIGURATION_FILE_PATH = '../smart-contracts/deployment_dev.json'
+Coin = namedtuple('Coin', 'symbol, address, name')
 
 
 class Config:
-    MARKET = 'ETH'
+    _MARKET_SYMBOL = 'ETH'
 
-    def __init__(self):
+    # TODO: put in a configuration file
+    _PRIVATE_KEY_PATH = '../KEY.json'
+
+    def __init__(self, configuration_file_path):
+        self._configuration_file_path = configuration_file_path
         self._config = self._load_config()
-        self.market = Config.MARKET
+        self.market = self._prepare_coin_from_config_token(
+            symbol=Config._MARKET_SYMBOL, params=self._config['tokens'][Config._MARKET_SYMBOL])
         self.coins = [
-            coin
-            for coin in self._config['tokens']
-            if coin != Config.MARKET
+            self._prepare_coin_from_config_token(symbol=symbol, params=params)
+            for symbol, params in self._config['tokens'].items()
+            if symbol != self.market.symbol
         ]
 
-    @staticmethod
-    def _load_config():
-        with open(CONFIGURATION_FILE_PATH) as config_file:
+    def get_admin_private(self):
+        with open(Config._PRIVATE_KEY_PATH) as key_file:
+            key_data = json.load(key_file)
+            return key_data['private']
+
+    def _load_config(self):
+        with open(self._configuration_file_path) as config_file:
             return json.load(config_file)
+
+    @staticmethod
+    def _prepare_coin_from_config_token(symbol, params):
+        return Coin(symbol=symbol, address=params['address'], name=params['name'])

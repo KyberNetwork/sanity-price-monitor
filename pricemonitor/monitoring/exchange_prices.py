@@ -29,7 +29,7 @@ class ExchangePriceMonitor:
 
             coin_prices = await self._get_data_for_multiple_coins(
                 coins=self._coins, market=self._market, loop=loop, exchange_data_action=exchange_data_action)
-            monitor_action.act(coin_prices)
+            await monitor_action.act(data=coin_prices, loop=loop)
 
             await asyncio.sleep(calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds), loop=loop)
 
@@ -52,10 +52,10 @@ class ExchangePriceMonitor:
             exchange_data_action(exchange, coin=coin, market=market)
             for exchange in self._exchanges
         )
-        coin_prices_from_all_exchanges = [
-            price
-            for price in await asyncio.gather(*exchange_api_calls, loop=loop)
-            if price is not None
+        data_from_all_exchanges = [
+            value
+            for value in await asyncio.gather(*exchange_api_calls, loop=loop)
+            if value is not None
         ]
 
-        return (coin, market), calculate_average(coin_prices_from_all_exchanges)
+        return (coin, market), calculate_average(data_from_all_exchanges)

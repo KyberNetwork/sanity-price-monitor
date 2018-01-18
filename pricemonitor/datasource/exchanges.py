@@ -77,7 +77,7 @@ class Exchange:
 
 
 def _prepare_symbol(coin, market):
-    return f'{coin}/{market}'
+    return f'{coin.symbol}/{market.symbol}'
 
 
 async def _test(loop):

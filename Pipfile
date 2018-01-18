@@ -9,6 +9,8 @@ name = "pypi"
 
 aiohttp = "*"
 ccxt = "*"
+pycoin = "*"
+jsonrpc = "*"
 
 
 [dev-packages]
@@ -17,3 +19,4 @@ pytest = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
 pytest-cov = "*"
+fire = "*"

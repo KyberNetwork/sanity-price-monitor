@@ -1,33 +1,39 @@
 from collections import defaultdict
 
+from pricemonitor.storing.storing import SanityContractUpdater
 from util.calculations import calculate_average
 from util.time import prepare_time_str
 
 
 class MonitorAction:
-    def act(self, data):
+    def __init__(self, config):
+        self._config = config
+
+    async def act(self, data, loop):
         raise NotImplementedError
 
 
 class PrintValuesMonitor(MonitorAction):
-    def act(self, data):
+    async def act(self, data, loop):
         self._print(data)
 
     @staticmethod
     def _print(data):
         printable_prices = [
-            f'{pair}: {price:10.5}'
-            for pair, price in data
+            f'{coin.symbol}/{market.symbol}: {price:10.5}'
+            for (coin, market), price in data
+            if price is not None
         ]
         prices_str = '\t'.join(printable_prices)
         print(f'{prepare_time_str()} {prices_str}')
 
 
 class PrintValuesAndAverageMonitor(PrintValuesMonitor):
-    def __init__(self):
+    def __init__(self, config):
+        super().__init__(config)
         self._all_data = defaultdict(lambda: [])
 
-    def act(self, data):
+    async def act(self, data, loop):
         self._print(data)
         self._save_data(data)
         self._print_averages()
@@ -44,3 +50,14 @@ class PrintValuesAndAverageMonitor(PrintValuesMonitor):
         for pair, price in data:
             if price is not None:
                 self._all_data[pair].append(price)
+
+
+class ContractUpdaterMonitor(MonitorAction):
+    def __init__(self, config):
+        super().__init__(config)
+        self._print_monitor = PrintValuesMonitor(config)
+        self._updater = SanityContractUpdater(self._config)
+
+    async def act(self, data, loop):
+        await self._print_monitor.act(data, loop)
+        await self._updater.update_prices(coin_price_data=data, loop=loop)
