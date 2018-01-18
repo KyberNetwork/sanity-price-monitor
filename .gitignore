@@ -151,3 +151,5 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
+# keeps private keys during development
+KEY.json
