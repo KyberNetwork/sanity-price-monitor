@@ -1,3 +1,4 @@
+from enum import Enum, auto
 from json import dumps
 from urllib.parse import urlencode, unquote, urlparse, parse_qsl, ParseResult
 
@@ -5,29 +6,25 @@ import aiohttp
 import async_timeout
 
 
-async def get_json_response_from_request(url, headers=None, params=None, timeout=30):
+class DataFormat(Enum):
+    TEXT = auto()
+    JSON = auto()
+
+
+async def get_response_content_from_get_request(url, headers=None, params=None, timeout=30, format=DataFormat.TEXT):
     async with aiohttp.ClientSession(headers=headers) as session:
         with async_timeout.timeout(timeout):
             async with session.get(url=url, params=params) as response:
-                return await response.json()
+                return await response.json() if format == DataFormat.JSON else await response.text()
 
 
-async def post_and_get_text_response(url, headers=None, payload=None, timeout=30):
+async def get_response_content_from_post_request(url, headers=None, payload=None, timeout=30, format=DataFormat.TEXT):
     if payload is None:
         payload = {}
     async with aiohttp.ClientSession(headers=headers) as session:
         with async_timeout.timeout(timeout):
             async with session.post(url=url, data=payload) as response:
-                return await response.text()
-
-
-async def post_and_get_json_response(url, headers=None, payload=None, timeout=30):
-    if payload is None:
-        payload = {}
-    async with aiohttp.ClientSession(headers=headers) as session:
-        with async_timeout.timeout(timeout):
-            async with session.post(url=url, data=payload) as response:
-                return await response.json()
+                return await response.json() if format == DataFormat.JSON else await response.text()
 
 
 def add_url_params(url, params):

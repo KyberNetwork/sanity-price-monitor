@@ -11,6 +11,7 @@ aiohttp = "*"
 ccxt = "*"
 pycoin = "*"
 jsonrpc = "*"
+pandas = "*"
 
 
 [dev-packages]
