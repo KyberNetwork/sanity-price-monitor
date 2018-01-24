@@ -9,8 +9,8 @@ from pricemonitor.datasource.exchanges import Exchange, ExchangeName
 
 logging.disable(logging.WARNING)
 
-COIN = Coin(symbol='KNC', address='0x000', name='KyberNetworkCrystal')
-MARKET = Coin(symbol='ETH', address='0x001', name='Ether')
+COIN = Coin(symbol='KNC', address='0x000', name='KyberNetworkCrystal', volatility=0.05)
+MARKET = Coin(symbol='ETH', address='0x001', name='Ether', volatility=0.05)
 
 
 class CcxtExchangeWithSomeTrades:

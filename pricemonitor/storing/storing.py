@@ -1,39 +1,87 @@
+import asyncio
 import logging
-
-from pycoin.serialize import h2b
-
-from pricemonitor.storing.web3_connector import Web3Connector
 
 
 class SanityContractUpdater:
-    # TODO: get actual contract from submodule
-    CONTRACT_ABI_PATH = 'storing/contract.abi'
-    # TODO: get from actual contract
-    SANITY_ADDRESS = '5735d385811e423D0E33a93861E687AEb590a00A'
+    SET_RATES_FUNCTION_NAME = 'setSanityRates'
+    GET_RATE_FUNCTION_NAME = 'getSanityRate'
 
-    UPDATE_PRICES_FUNCTION_NAME = 'setSanityRates'
-
-    def __init__(self, config):
-        self._price_formatter = ContractPriceFormatter()
-        self._web3 = Web3Connector(private_key=(h2b(config.get_admin_private())),
-                                   contract_abi=self._obtain_contract_abi(SanityContractUpdater.CONTRACT_ABI_PATH),
-                                   contract_address=SanityContractUpdater.SANITY_ADDRESS)
+    def __init__(self, web3_connector, config):
+        self._web3 = web3_connector
+        self._config = config
+        self._rates_converter = ContractRateArgumentsConverter(self._config.market)
         self._log = logging.getLogger(self.__class__.__name__)
 
     async def update_prices(self, coin_price_data, loop):
-        rs = await self._web3.call_network_function(
-            function_name=SanityContractUpdater.UPDATE_PRICES_FUNCTION_NAME,
-            args=(self._price_formatter.format_coin_prices_for_setter(coin_price_data)),
+        previous_rates = await self._get_previous_rates(loop)
+
+        rates_for_update = self._prepare_rates_for_update(previous_rates=previous_rates, new_rates=coin_price_data)
+
+        rs = await self.set_rates(rates_for_update, loop)
+        return rs
+
+    async def set_rates(self, coin_price_data, loop):
+        rs = await self._web3.call_remote_function(
+            function_name=SanityContractUpdater.SET_RATES_FUNCTION_NAME,
+            args=(self._rates_converter.format_coin_prices_for_setter(coin_price_data)),
             loop=loop)
         return rs
 
-    @staticmethod
-    def _obtain_contract_abi(contract_abi_path):
-        with open(contract_abi_path) as contract_abi_file:
-            return contract_abi_file.read()
+    async def get_rate(self, coin, loop):
+        rate_from_contract = await self._web3.call_local_function(
+            function_name=SanityContractUpdater.GET_RATE_FUNCTION_NAME,
+            args=(self._rates_converter.format_coin_for_getter(coin)),
+            loop=loop)
+        return self._rates_converter.convert_rate_from_contract_units(rate_from_contract)
+
+    async def _get_pair_price_future(self, coin, loop):
+        return (coin, self._config.market), await self.get_rate(coin, loop)
+
+    async def _get_previous_rates(self, loop):
+        previous_rate_futures = [
+            asyncio.ensure_future(self._get_pair_price_future(coin, loop))
+            for coin in self._config.coins
+        ]
+        previous_rates = await asyncio.gather(*previous_rate_futures, loop=loop)
+
+        return {
+            (coin, market): price
+            for (coin, market), price in previous_rates
+        }
+
+    def _prepare_rates_for_update(self, previous_rates, new_rates):
+        updates = []
+        for (coin, market), price in new_rates:
+            if self._should_update_price(coin,
+                                         market,
+                                         previous_rate=self._get_previous_rate(coin, market, previous_rates),
+                                         current_rate=price):
+                updates.append(((coin, market), price))
+
+        return updates
+
+    def _should_update_price(self, coin, market, previous_rate, current_rate):
+        current_change = abs(current_rate - previous_rate) / previous_rate > coin.volatility
+        should_update = current_change > coin.volatility
+        logging.debug(
+            f'{coin.address}/{market}: previous_rate={previous_rate}, current_rate={current_rate}, '
+            f'volatility_threashold={coin.volatility}, current_change={current_change}, should_update={should_update}')
+        return should_update
+
+    def _get_previous_rate(self, coin, market, rates):
+        try:
+            return rates[(coin, market)]
+        except KeyError:
+            return None
 
 
-class ContractPriceFormatter:
+# Test!
+class ContractRateArgumentsConverter:
+    CHANGE_FACTOR = 10 ** 18
+
+    def __init__(self, market):
+        self._market = market
+
     @staticmethod
     def format_coin_prices_for_setter(coin_price_data):
         sources = []
@@ -43,16 +91,23 @@ class ContractPriceFormatter:
             # TODO: should this code receive a None? Saw while running.
             if price:
                 sources.append(coin.address)
-                rates.append(ContractPriceFormatter._convert_price_to_contract_units(price))
+                rates.append(ContractRateArgumentsConverter.convert_price_to_contract_units(price))
 
         return [sources, rates]
 
+    def format_coin_for_getter(self, coin):
+        return [coin.address, self._market.address]
+
     @staticmethod
-    def _convert_price_to_contract_units(price):
+    def convert_rate_from_contract_units(rate_from_contract):
+        return rate_from_contract / ContractRateArgumentsConverter.CHANGE_FACTOR
+
+    @staticmethod
+    def convert_price_to_contract_units(price):
         """ Prices in the contract have some limitations.
 
         Prices are kept as a uint in the contract so we shift the decimal point a couple of places.
         e.g. A rate of OMG/ETH: 0.016883 means that one OMG costs 0.016883 ETH, and so the contract will be sent a rate
         of 16,883,000,000,000,000.
         """
-        return round(price * 10 ** 18)
+        return round(price * ContractRateArgumentsConverter.CHANGE_FACTOR)

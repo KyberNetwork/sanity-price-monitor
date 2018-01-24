@@ -14,11 +14,16 @@ class Web3Connector(object):
         self._contract_address = contract_address
         self._log = logging.getLogger(self.__class__.__name__)
 
-    async def call_local_function(self):
-        pass
+    async def call_local_function(self, function_name, args, loop):
+        return await self.wrap_sync_function(
+            call_function=web3.call_const_function, function_name=function_name, args=args, loop=loop)
 
-    async def call_network_function(self, function_name, args, loop):
-        web3call = partial(web3.call_function,
+    async def call_remote_function(self, function_name, args, loop):
+        return await self.wrap_sync_function(
+            call_function=web3.call_function, function_name=function_name, args=args, loop=loop)
+
+    async def wrap_sync_function(self, call_function, function_name, args, loop):
+        web3call = partial(call_function,
                            priv_key=self._private_key,
                            value=0,
                            contract_hash=self._contract_address,

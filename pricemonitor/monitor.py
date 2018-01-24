@@ -6,6 +6,7 @@ from functools import partial
 
 import fire
 
+from pricemonitor.coin_volatility import CoinVolatilityFixed
 from pricemonitor.config import Config
 from pricemonitor.datasource.exchanges import Exchange
 from pricemonitor.monitoring.exchange_prices import ExchangePriceMonitor
@@ -19,6 +20,8 @@ Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_mil
 
 CONFIG_FILE_PATH_DEV = '../smart-contracts/deployment_dev.json'
 CONFIG_FILE_PATH_KOVAN = '../smart-contracts/deployment_kovan.json'
+
+DEFAULT_COIN_VOLATILITY = 0.05
 
 
 class Tasks(Enum):
@@ -39,7 +42,8 @@ class Tasks(Enum):
 
 
 async def main(task, loop):
-    config = Config(configuration_file_path=CONFIG_FILE_PATH_KOVAN)
+    config = Config(configuration_file_path=CONFIG_FILE_PATH_KOVAN,
+                    coin_volatility=CoinVolatilityFixed(DEFAULT_COIN_VOLATILITY))
     monitor = ExchangePriceMonitor(config.coins, config.market)
     await monitor.monitor(
         monitor_action=task.value.monitor_action(config),

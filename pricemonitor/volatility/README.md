@@ -1,4 +1,4 @@
-# Volatility Calculator
+# Price Volatility Calculator
 
 Extract data that was archived by [collector](https://github.com/KyberNetwork/reserve-collector) and extract the 
 volatility levels per coin per exchange.
