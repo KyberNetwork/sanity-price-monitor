@@ -6,7 +6,6 @@ import ccxt.async as ccxt
 
 from util.time import minutes_ago_in_millis_since_epoch
 
-logging.basicConfig(level=logging.ERROR)
 log = logging.getLogger(__name__)
 
 
@@ -88,7 +87,7 @@ async def _test(loop):
 
 
 if __name__ == '__main__':
-    log = logging.getLogger('main')
+    log = logging.getLogger(__name__)
     log.info('Starting event loop')
     loop = asyncio.get_event_loop()
     try:

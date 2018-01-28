@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from collections import namedtuple
 from enum import Enum
 from functools import partial
@@ -53,8 +54,8 @@ async def main(task, loop):
 
 
 def run_on_loop(task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE'):
+    logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
     log = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.INFO)
     log.debug('Starting event loop')
     loop = asyncio.get_event_loop()
     # TODO: ccxt raises exceptions when the code runs from inside a try-finally for some reason:

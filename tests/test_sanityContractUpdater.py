@@ -1,7 +1,12 @@
+import logging
+import os
+
 import pytest
 
 from pricemonitor.config import Coin
 from pricemonitor.storing.storing import SanityContractUpdater, ContractRateArgumentsConverter
+
+logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
 SOME_TX_ADDRESS = '0x9865'
 
@@ -44,7 +49,7 @@ class Web3ConnectorFakeWithInitialOMG(Web3ConnectorFake):
 
     async def call_local_function(self, function_name, args, loop):
         if function_name == SanityContractUpdater.GET_RATE_FUNCTION_NAME:
-            return self._prices[args[0]]
+            return [self._prices[args[0]]]
 
         return super().call_local_function(function_name, args, loop)
 
@@ -124,8 +129,9 @@ async def test_update_prices__insignificant_change__rates_do_not_change(event_lo
     omg_price_before = web3_connector._prices[OMG.address]
     rs = await s.update_prices(SIMILAR_TO_INITIAL_COIN_PRICES, event_loop)
 
-    assert rs is not None
+    assert rs is None
     assert omg_price_before == web3_connector._prices[OMG.address]
+    # TODO: assert web3_connector.set_prices was not called!
 
 
 @pytest.mark.skip
@@ -138,3 +144,60 @@ async def test_update_prices__mixed_price_updates__only_major_changes_get_update
 @pytest.mark.asyncio
 async def test_two_very_fast_rates_updates():
     assert False
+
+
+@pytest.mark.skip
+@pytest.mark.asyncio
+async def test_get_prices__exception_calling_node__rate_0_assumed():
+    assert False
+
+
+@pytest.mark.skip
+@pytest.mark.asyncio
+async def test_get_prices__exception_calling_node__code_does_not_crash():
+    assert False
+
+# @pytest.mark.skip
+# @pytest.mark.asyncio
+# async def test_get_prices__async_timeout(event_loop):
+#     # timeout = 5 * 60
+#     timeout = 1
+#     async with async_timeout.timeout(timeout, loop=event_loop):
+#         res = None
+#         while not res:
+#             try:
+#                 res = await async_wrapper_for_slow_failing_method()
+#             except Exception:
+#                 pass
+#
+#     assert res is None
+#
+#
+# @pytest.mark.asyncio
+# async def test_timeout(event_loop):
+#     res = None
+#     try:
+#         res = await asyncio.wait_for(slow(10), timeout=0.1, loop=event_loop)
+#     except Exception:
+#         pass
+#
+#     assert res is None
+#
+#
+# async def slow(seconds):
+#     res = None
+#     for i in range(seconds):
+#         res = await async_wrapper_for_slow_failing_method()
+#         if res is not None:
+#             break
+#
+#     return res
+#
+#
+# A = 0
+# async def async_wrapper_for_slow_failing_method():
+#     global A
+#     await asyncio.sleep(1)
+#     A += 1
+#     logging.error('--- A=', A)
+#     return A if A > 5 else None

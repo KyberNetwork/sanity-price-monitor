@@ -1,6 +1,10 @@
 import asyncio
 import logging
 
+from pricemonitor.storing.web3_connector import Web3ConnectionError
+
+log = logging.getLogger(__name__)
+
 
 class SanityContractUpdater:
     SET_RATES_FUNCTION_NAME = 'setSanityRates'
@@ -10,15 +14,23 @@ class SanityContractUpdater:
         self._web3 = web3_connector
         self._config = config
         self._rates_converter = ContractRateArgumentsConverter(self._config.market)
-        self._log = logging.getLogger(self.__class__.__name__)
+        self._updates_requested = 0
 
     async def update_prices(self, coin_price_data, loop):
         previous_rates = await self._get_previous_rates(loop)
 
         rates_for_update = self._prepare_rates_for_update(previous_rates=previous_rates, new_rates=coin_price_data)
 
-        rs = await self.set_rates(rates_for_update, loop)
-        return rs
+        if rates_for_update:
+            rs = await self.set_rates(rates_for_update, loop)
+            self._updates_requested += 1
+            return rs
+
+        log_line = "No updates required.\n"
+        # TODO: fix logging
+        log.info(log_line)
+        print(log_line)
+        return None
 
     async def set_rates(self, coin_price_data, loop):
         rs = await self._web3.call_remote_function(
@@ -28,10 +40,17 @@ class SanityContractUpdater:
         return rs
 
     async def get_rate(self, coin, loop):
-        rate_from_contract = await self._web3.call_local_function(
-            function_name=SanityContractUpdater.GET_RATE_FUNCTION_NAME,
-            args=(self._rates_converter.format_coin_for_getter(coin)),
-            loop=loop)
+        try:
+            local_function_response = await self._web3.call_local_function(
+                function_name=SanityContractUpdater.GET_RATE_FUNCTION_NAME,
+                args=(self._rates_converter.format_coin_for_getter(coin)),
+                loop=loop)
+            # A single value is returned
+            rate_from_contract = local_function_response[0]
+        except Web3ConnectionError:
+            log.warning(f"Could not get current rate of {coin}. Assuming 0.")
+            rate_from_contract = 0
+
         return self._rates_converter.convert_rate_from_contract_units(rate_from_contract)
 
     async def _get_pair_price_future(self, coin, loop):
@@ -61,11 +80,17 @@ class SanityContractUpdater:
         return updates
 
     def _should_update_price(self, coin, market, previous_rate, current_rate):
-        current_change = abs(current_rate - previous_rate) / previous_rate > coin.volatility
+        current_change = abs(current_rate - previous_rate) / previous_rate
         should_update = current_change > coin.volatility
-        logging.debug(
-            f'{coin.address}/{market}: previous_rate={previous_rate}, current_rate={current_rate}, '
-            f'volatility_threashold={coin.volatility}, current_change={current_change}, should_update={should_update}')
+        log_line = (f'{coin.symbol}/{market.symbol}:\t' +
+                    f'previous={previous_rate:11.8}\t' +
+                    f'current={current_rate:11.8}\t' +
+                    f'change={current_change:11.5}\t' +
+                    f'threshold={coin.volatility:11.5}\t' +
+                    f'update={should_update}')
+        # TODO: fix logging
+        log.info(log_line)
+        print(log_line)
         return should_update
 
     def _get_previous_rate(self, coin, market, rates):
@@ -75,7 +100,7 @@ class SanityContractUpdater:
             return None
 
 
-# Test!
+# TODO: test this class
 class ContractRateArgumentsConverter:
     CHANGE_FACTOR = 10 ** 18
 
