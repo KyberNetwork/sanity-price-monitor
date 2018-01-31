@@ -43,7 +43,7 @@ class TradesDownloader:
 
     async def _read_data_from_web_file(self, trades_url):
         print(f'Downloading data from {trades_url} - start')
-        data = await network.get_response_content_from_get_request(url=trades_url, format=DataFormat.TEXT, timeout=60)
+        data = await network.get_response_content_from_get_request(url=trades_url, format=DataFormat.TEXT, timeout=240)
 
         trades = [
             normalize_trade_values(json.loads(line))

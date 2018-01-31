@@ -10,8 +10,7 @@ class CoinVolatility:
 
 
 class CoinVolatilityFile(CoinVolatility):
-    def __init__(self, volatility_file_path, default_value):
-        self._default_value = default_value
+    def __init__(self, volatility_file_path):
         with open(volatility_file_path) as data:
             self._values = json.load(data)
 
@@ -19,9 +18,12 @@ class CoinVolatilityFile(CoinVolatility):
         try:
             return self._values['markets'][market][coin_symbol]
         except KeyError:
-            log.info(f'Missing expected volatility for {coin_symbol}/{market}. Using default: {self._default_value}.')
-            return self._default_value
+            log.info(f'Missing expected volatility for {coin_symbol}/{market}.')
+            raise CoinNotDefined(market=market, coin=coin_symbol)
 
 
 class CoinNotDefined(RuntimeError):
-    pass
+    def __init__(self, market, coin):
+        super().__init__(f'Expected volatility not defined for {coin}/{market}.')
+        self.market = market
+        self.coin = coin

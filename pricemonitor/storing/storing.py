@@ -16,10 +16,13 @@ class SanityContractUpdater:
         self._rates_converter = ContractRateArgumentsConverter(self._config.market)
         self._updates_requested = 0
 
-    async def update_prices(self, coin_price_data, loop):
+    async def update_prices(self, coin_price_data, loop, force=False):
         previous_rates = await self._get_previous_rates(loop)
 
-        rates_for_update = self._prepare_rates_for_update(previous_rates=previous_rates, new_rates=coin_price_data)
+        if force:
+            rates_for_update = coin_price_data
+        else:
+            rates_for_update = self._prepare_rates_for_update(previous_rates=previous_rates, new_rates=coin_price_data)
 
         if rates_for_update:
             log.info(f'Update #{self._updates_requested}: {rates_for_update}')
@@ -81,12 +84,13 @@ class SanityContractUpdater:
     def _should_update_price(self, coin, market, previous_rate, current_rate):
         current_change = abs(current_rate - previous_rate) / previous_rate
         should_update = current_change > coin.volatility
-        log.debug((f'{coin.symbol}/{market.symbol}:\tprevious={previous_rate:11.8}\t' +
-                   f'current={current_rate:11.8}\tchange={current_change:11.5}\t' +
-                   f'threshold={coin.volatility:11.5}\tupdate={should_update}'))
+        log.debug((f'{coin.symbol + "/" + market.symbol + ":":10}\tprevious={previous_rate:<8.5}\t' +
+                   f'current={current_rate:<8.5}\tchange={current_change:<8.5}\t' +
+                   f'threshold={coin.volatility:<8.5}\tupdate={should_update}'))
         return should_update
 
-    def _get_previous_rate(self, coin, market, rates):
+    @staticmethod
+    def _get_previous_rate(coin, market, rates):
         try:
             return rates[(coin, market)]
         except KeyError:

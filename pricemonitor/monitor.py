@@ -23,7 +23,6 @@ CONFIG_FILE_PATH_DEV = '../smart-contracts/deployment_dev.json'
 CONFIG_FILE_PATH_KOVAN = '../smart-contracts/deployment_kovan.json'
 
 COIN_VOLATILITY_PATH = '../coin_volatility.json'
-DEFAULT_COIN_VOLATILITY = 0.05
 
 
 class Tasks(Enum):
@@ -43,10 +42,9 @@ class Tasks(Enum):
         interval_in_millis=1 * 60 * 1_000)
 
 
-async def main(task, loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN,
-               coin_volatility_path=COIN_VOLATILITY_PATH, default_volatility=DEFAULT_COIN_VOLATILITY):
+async def main(task, loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN, coin_volatility_path=COIN_VOLATILITY_PATH):
     config = Config(configuration_file_path=configuration_file_path,
-                    coin_volatility=CoinVolatilityFile(coin_volatility_path, default_value=default_volatility))
+                    coin_volatility=CoinVolatilityFile(coin_volatility_path))
     monitor = ExchangePriceMonitor(config.coins, config.market)
     await monitor.monitor(
         monitor_action=task.value.monitor_action(config),
@@ -56,7 +54,9 @@ async def main(task, loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN,
 
 
 def run_on_loop(task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE'):
-    logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+    logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
+    logging.getLogger('asyncio').setLevel(logging.INFO)
+    logging.getLogger('urllib3').setLevel(logging.INFO)
     log = logging.getLogger(__name__)
     log.debug('Starting event loop')
     loop = asyncio.get_event_loop()

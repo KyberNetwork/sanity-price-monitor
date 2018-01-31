@@ -4,7 +4,7 @@ from functools import partial
 from pricemonitor.storing import web3_interface as web3
 
 # TODO: use correct chain in etherscan
-ETHERSCAN_PREFIX = f"https://kovan.etherscan.io/tx/"
+ETHERSCAN_PREFIX = "https://kovan.etherscan.io/tx/"
 
 log = logging.getLogger(__name__)
 

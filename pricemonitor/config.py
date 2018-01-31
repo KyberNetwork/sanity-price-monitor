@@ -12,8 +12,7 @@ class Config:
     # TODO: add option to read from environment variable
     _PRIVATE_KEY_PATH = '../KEY.json'
 
-    # TODO: get actual contract from submodule
-    _CONTRACT_ABI_PATH = 'storing/contract.abi'
+    _CONTRACT_ABI_PATH = '../smart-contracts/contracts/abi/SanityRates.abi'
 
     # TODO: get from actual contract
     SANITY_ADDRESS = '5735d385811e423D0E33a93861E687AEb590a00A'

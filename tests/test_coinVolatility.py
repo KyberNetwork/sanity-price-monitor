@@ -1,9 +1,11 @@
-from pricemonitor.coin_volatility import CoinVolatilityFile
+import pytest
+
+from pricemonitor.coin_volatility import CoinVolatilityFile, CoinNotDefined
 
 
 def test_coinVolatilityFile_getVolatility_setTo5percent__fivePercentReturned(tmpdir):
     coin_volatility_file_path = _get_coin_volatility_json_file(tmpdir)
-    v = CoinVolatilityFile(coin_volatility_file_path, default_value=0.03)
+    v = CoinVolatilityFile(coin_volatility_file_path)
 
     volatility = v.get(coin_symbol='OMG', market='ETH')
 
@@ -12,11 +14,13 @@ def test_coinVolatilityFile_getVolatility_setTo5percent__fivePercentReturned(tmp
 
 def test_coinVolatilityFile_getVolatility_coinNotDefined__defaultValueReturned(tmpdir):
     coin_volatility_file_path = _get_coin_volatility_json_file(tmpdir)
-    v = CoinVolatilityFile(coin_volatility_file_path, default_value=0.03)
+    v = CoinVolatilityFile(coin_volatility_file_path)
 
-    volatility = v.get(coin_symbol='XXX', market='YYY')
+    with pytest.raises(CoinNotDefined) as excinfo:
+        v.get(coin_symbol='XXX', market='YYY')
 
-    assert 0.03 == volatility
+    assert 'YYY' == excinfo.value.market
+    assert 'XXX' == excinfo.value.coin
 
 
 def _get_coin_volatility_json_file(tmpdir):
