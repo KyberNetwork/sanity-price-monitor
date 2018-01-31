@@ -22,14 +22,12 @@ class SanityContractUpdater:
         rates_for_update = self._prepare_rates_for_update(previous_rates=previous_rates, new_rates=coin_price_data)
 
         if rates_for_update:
+            log.info(f'Update #{self._updates_requested}: {rates_for_update}')
             rs = await self.set_rates(rates_for_update, loop)
             self._updates_requested += 1
             return rs
 
-        log_line = "No updates required.\n"
-        # TODO: fix logging
-        log.info(log_line)
-        print(log_line)
+        log.debug("No updates required.\n")
         return None
 
     async def set_rates(self, coin_price_data, loop):
@@ -48,8 +46,9 @@ class SanityContractUpdater:
             # A single value is returned
             rate_from_contract = local_function_response[0]
         except Web3ConnectionError:
-            log.warning(f"Could not get current rate of {coin}. Assuming 0.")
-            rate_from_contract = 0
+            log.warning(f"Could not get current rate of {coin}. Assume 0?")
+            raise
+            # rate_from_contract = 0
 
         return self._rates_converter.convert_rate_from_contract_units(rate_from_contract)
 
@@ -82,15 +81,9 @@ class SanityContractUpdater:
     def _should_update_price(self, coin, market, previous_rate, current_rate):
         current_change = abs(current_rate - previous_rate) / previous_rate
         should_update = current_change > coin.volatility
-        log_line = (f'{coin.symbol}/{market.symbol}:\t' +
-                    f'previous={previous_rate:11.8}\t' +
-                    f'current={current_rate:11.8}\t' +
-                    f'change={current_change:11.5}\t' +
-                    f'threshold={coin.volatility:11.5}\t' +
-                    f'update={should_update}')
-        # TODO: fix logging
-        log.info(log_line)
-        print(log_line)
+        log.debug((f'{coin.symbol}/{market.symbol}:\tprevious={previous_rate:11.8}\t' +
+                   f'current={current_rate:11.8}\tchange={current_change:11.5}\t' +
+                   f'threshold={coin.volatility:11.5}\tupdate={should_update}'))
         return should_update
 
     def _get_previous_rate(self, coin, market, rates):

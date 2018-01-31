@@ -19,20 +19,14 @@ class Web3Connector(object):
         rs = await self.wrap_sync_function(
             call_function=web3.call_const_function, function_name=function_name, args=args, loop=loop)
 
-        transaction_url = f"{function_name}({args})\n\t-> {rs}"
-        # TODO: fix logging problem
-        log.info(transaction_url)
-        print(transaction_url)
+        log.debug(f"{function_name}({args})\n\t-> {rs}")
         return rs
 
     async def call_remote_function(self, function_name, args, loop):
         rs = await self.wrap_sync_function(
             call_function=web3.call_function, function_name=function_name, args=args, loop=loop)
 
-        transaction_url = f"{function_name}({args})\n\t-> {rs} ({ETHERSCAN_PREFIX}{rs})"
-        # TODO: fix logging problem
-        log.info(transaction_url)
-        print(transaction_url)
+        log.info(f"{function_name}({args})\n\t-> {rs} ({ETHERSCAN_PREFIX}{rs})")
         return rs
 
     async def wrap_sync_function(self, call_function, function_name, args, loop):
