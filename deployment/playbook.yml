@@ -1,0 +1,8 @@
+---
+- hosts: all
+  remote_user: ubuntu
+  roles:
+      - { role: latest-python, tags: [platform] }
+      - { role: pipenv, tags: [platform] }
+      - { role: sanity-sources, tags: [platform, sources] }
+      - { role: sanity-deps, tags: [platform] }

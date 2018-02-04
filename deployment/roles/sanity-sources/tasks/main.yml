@@ -1,0 +1,7 @@
+---
+- name: get sources
+  git:
+      repo: 'https://github.com/KyberNetwork/sanity-price-monitor.git'
+      dest: /home/ubuntu/sanity
+      recursive: yes
+      force: yes
