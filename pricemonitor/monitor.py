@@ -19,10 +19,10 @@ from pricemonitor.monitoring.monitor_actions import (
 
 Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_millis')
 
-CONFIG_FILE_PATH_DEV = '../smart-contracts/deployment_dev.json'
-CONFIG_FILE_PATH_KOVAN = '../smart-contracts/deployment_kovan.json'
+CONFIG_FILE_PATH_DEV = 'smart-contracts/deployment_dev.json'
+CONFIG_FILE_PATH_KOVAN = 'smart-contracts/deployment_kovan.json'
 
-COIN_VOLATILITY_PATH = '../coin_volatility.json'
+COIN_VOLATILITY_PATH = 'coin_volatility.json'
 
 
 class Tasks(Enum):
