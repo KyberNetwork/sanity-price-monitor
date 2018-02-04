@@ -79,9 +79,12 @@ class Config:
 
     @staticmethod
     def _read_private_from_file():
-        with open(Config._PRIVATE_KEY_PATH) as key_file:
-            key_data = json.load(key_file)
-            return key_data['private']
+        try:
+            with open(Config._PRIVATE_KEY_PATH) as key_file:
+                key_data = json.load(key_file)
+                return key_data['private']
+        except FileNotFoundError:
+            return None
 
 
 class MissingPrivateKey(RuntimeError, PriceMonitorException):

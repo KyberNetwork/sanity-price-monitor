@@ -1,7 +1,7 @@
 import json
 import logging
 
-from pricemonitor.exceptions import PriceMonitorException
+from pricemonitor.exceptions import PriceMonitorException, ConfigurationFileMissing
 
 log = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class CoinVolatilityFile(CoinVolatility):
             with open(volatility_file_path) as data:
                 self._values = json.load(data)
         except FileNotFoundError as e:
-            raise CoinVolatilityFileMissing from e
+            raise ConfigurationFileMissing('Missing coin volatility file.') from e
 
     def get(self, coin_symbol, market):
         try:
@@ -25,13 +25,6 @@ class CoinVolatilityFile(CoinVolatility):
         except KeyError:
             log.info(f'Missing expected volatility for {coin_symbol}/{market}.')
             raise CoinNotDefined('Expected volatility not defined for coin.', market=market, coin=coin_symbol)
-
-
-class CoinVolatilityFileMissing(RuntimeError, PriceMonitorException):
-    def __init__(self, msg, market, coin):
-        super().__init__(f'{msg} (Missing coin volatility file).')
-        self.market = market
-        self.coin = coin
 
 
 class CoinNotDefined(RuntimeError, PriceMonitorException):
