@@ -1,7 +1,10 @@
 import json
+import os
 from collections import namedtuple
 
 from pycoin.serialize import h2b
+
+from pricemonitor.exceptions import PriceMonitorException
 
 Coin = namedtuple('Coin', 'symbol, address, name, volatility')
 
@@ -17,7 +20,7 @@ class Config:
     # TODO: get from actual contract
     SANITY_ADDRESS = '5735d385811e423D0E33a93861E687AEb590a00A'
 
-    def __init__(self, configuration_file_path, coin_volatility):
+    def __init__(self, configuration_file_path, coin_volatility, private_key=None):
         self._configuration_file_path = configuration_file_path
         self._coin_volatility = coin_volatility
         self._config = self._load_config()
@@ -28,6 +31,7 @@ class Config:
             for symbol, params in self._config['tokens'].items()
             if symbol != self.market.symbol
         ]
+        self._setup_private_key(private_key)
 
     @staticmethod
     def get_admin_private():
@@ -54,3 +58,31 @@ class Config:
     def _load_config(self):
         with open(self._configuration_file_path) as config_file:
             return json.load(config_file)
+
+    def _setup_private_key(self, private):
+        if private is None:
+            private = self._read_private_key_from_env()
+
+        if private is None:
+            private = self._read_private_from_file()
+
+        if private is None:
+            raise MissingPrivateKey('Please configure private key in environment variable SANITY_PRIVATE_KEY or in '
+                                    'Key.json file')
+
+        self.private_key = h2b(private)
+
+    @staticmethod
+    def _read_private_key_from_env():
+        private = os.environ.get("SANITY_PRIVATE_KEY")
+        return private
+
+    @staticmethod
+    def _read_private_from_file():
+        with open(Config._PRIVATE_KEY_PATH) as key_file:
+            key_data = json.load(key_file)
+            return key_data['private']
+
+
+class MissingPrivateKey(RuntimeError, PriceMonitorException):
+    pass

@@ -47,9 +47,11 @@ class Tasks(Enum):
         interval_in_millis=1 * 1_000)
 
 
-async def main(task, loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN, coin_volatility_path=COIN_VOLATILITY_PATH):
+async def main(task, loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN, coin_volatility_path=COIN_VOLATILITY_PATH,
+               private_key=None):
     config = Config(configuration_file_path=configuration_file_path,
-                    coin_volatility=CoinVolatilityFile(coin_volatility_path))
+                    coin_volatility=CoinVolatilityFile(coin_volatility_path),
+                    private_key=private_key)
     monitor = ExchangePriceMonitor(config.coins, config.market)
     await monitor.monitor(monitor_action=task.value.monitor_action(config),
                           interval_in_milliseconds=task.value.interval_in_millis,
@@ -57,7 +59,7 @@ async def main(task, loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN, coin_
                           exchange_data_action=task.value.exchange_data_action)
 
 
-def run_on_loop(task_name='UPDATE_CONTRACT_AVERAGE_LAST_SECOND_FORCE'):
+def run_on_loop(task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE', private_key=None):
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
     logging.getLogger('asyncio').setLevel(logging.INFO)
     logging.getLogger('urllib3').setLevel(logging.INFO)
@@ -71,7 +73,7 @@ def run_on_loop(task_name='UPDATE_CONTRACT_AVERAGE_LAST_SECOND_FORCE'):
     # finally:
     #     log.info('Closing event loop')
     #     loop.close()
-    loop.run_until_complete(main(Tasks[task_name], loop))
+    loop.run_until_complete(main(task=Tasks[task_name], loop=loop, private_key=private_key))
 
 
 if __name__ == '__main__':
