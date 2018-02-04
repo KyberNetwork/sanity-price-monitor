@@ -31,14 +31,7 @@ class Config:
             for symbol, params in self._config['tokens'].items()
             if symbol != self.market.symbol
         ]
-        self._setup_private_key(private_key)
-
-    @staticmethod
-    def get_admin_private():
-        with open(Config._PRIVATE_KEY_PATH) as key_file:
-            key_data = json.load(key_file)
-            private_key_str = key_data['private']
-            return h2b(private_key_str)
+        self.private_key = self._prepare_private_key(private_key)
 
     def _prepare_coin_from_config_token(self, symbol, params):
         return Coin(symbol=symbol,
@@ -59,9 +52,9 @@ class Config:
         with open(self._configuration_file_path) as config_file:
             return json.load(config_file)
 
-    def _setup_private_key(self, private):
+    def _prepare_private_key(self, private):
         if private is None:
-            private = self._read_private_key_from_env()
+            private = os.environ.get("SANITY_PRIVATE_KEY")
 
         if private is None:
             private = self._read_private_from_file()
@@ -70,12 +63,7 @@ class Config:
             raise MissingPrivateKey('Please configure private key in environment variable SANITY_PRIVATE_KEY or in '
                                     'Key.json file')
 
-        self.private_key = h2b(private)
-
-    @staticmethod
-    def _read_private_key_from_env():
-        private = os.environ.get("SANITY_PRIVATE_KEY")
-        return private
+        return h2b(private)
 
     @staticmethod
     def _read_private_from_file():

@@ -35,7 +35,7 @@ def prepare_rates(config):
 async def main(loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN, coin_volatility_path=COIN_VOLATILITY_PATH):
     config = Config(configuration_file_path=configuration_file_path,
                     coin_volatility=CoinVolatilityFile(coin_volatility_path))
-    contract_updater = SanityContractUpdater(Web3Connector(private_key=config.get_admin_private(),
+    contract_updater = SanityContractUpdater(Web3Connector(private_key=config.private_key,
                                                            contract_abi=config.get_smart_contract_abi(),
                                                            contract_address=config.get_smart_contract_address()),
                                              config=config)

@@ -57,7 +57,7 @@ class ContractUpdaterMonitor(MonitorAction):
     def __init__(self, config, force=False):
         super().__init__(config)
         self._print_monitor = PrintValuesMonitor(config)
-        self._updater = SanityContractUpdater(Web3Connector(private_key=config.get_admin_private(),
+        self._updater = SanityContractUpdater(Web3Connector(private_key=config.private_key,
                                                             contract_abi=config.get_smart_contract_abi(),
                                                             contract_address=config.get_smart_contract_address()),
                                               config=config)
