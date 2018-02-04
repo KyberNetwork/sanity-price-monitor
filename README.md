@@ -14,6 +14,11 @@ Enter the folder and use pipenv to install library dependencies:
     $ cd sanity-price-monitor
     $ pipenv install
     
+## Running the monitor
+
+    $ cd sanity-price-monitor
+    $ python -m pricemonitor.monitor
+    
 ## Running coverage
 
     $ cd sanity-price-monitor/tests

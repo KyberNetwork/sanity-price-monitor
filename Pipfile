@@ -13,6 +13,7 @@ pycoin = "*"
 jsonrpc = "*"
 pandas = "*"
 fire = "*"
+ethereum = "*"
 
 
 [dev-packages]
