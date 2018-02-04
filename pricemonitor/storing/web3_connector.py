@@ -44,6 +44,12 @@ class Web3Connector(object):
             msg = "Error accessing Ethereum node"
             log.exception(msg)
             raise Web3ConnectionError(msg, call_function, function_name, args) from e
+        except ValueError as e:
+            raise PreviousTransactionPendingError() from e
+
+
+class PreviousTransactionPendingError(RuntimeError):
+    pass
 
 
 class Web3ConnectionError(RuntimeError):

@@ -5,6 +5,7 @@ import pytest
 
 from pricemonitor.config import Coin
 from pricemonitor.storing.storing import SanityContractUpdater, ContractRateArgumentsConverter
+from pricemonitor.storing.web3_connector import PreviousTransactionPendingError
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
@@ -17,7 +18,6 @@ INITIAL_OMG_PRICE = 0.1
 
 SIMILAR_TO_INITIAL_OMG_ETH_RATE = 0.103
 DIFFERENT_FROM_INITIAL_OMG_ETH_RATE = 0.110
-
 SOME_OTHER_OMG_ETH_RATE = 0.1667
 
 SOME_OTHER_COIN_PRICES = [
@@ -45,19 +45,23 @@ class Web3ConnectorFakeWithInitialOMG(Web3ConnectorFake):
     INITIAL_OMG_CONTRACT_RATE = INITIAL_OMG_PRICE * 10 ** 18
 
     def __init__(self):
-        self._prices = {OMG.address: Web3ConnectorFakeWithInitialOMG.INITIAL_OMG_CONTRACT_RATE}
+        self.prices = {OMG.address: Web3ConnectorFakeWithInitialOMG.INITIAL_OMG_CONTRACT_RATE}
+        self.raise_previous_transaction_pending = False
 
     async def call_local_function(self, function_name, args, loop):
         if function_name == SanityContractUpdater.GET_RATE_FUNCTION_NAME:
-            return [self._prices[args[0]]]
+            return [self.prices[args[0]]]
 
         return super().call_local_function(function_name, args, loop)
 
     async def call_remote_function(self, function_name, args, loop):
+        if self.raise_previous_transaction_pending:
+            raise PreviousTransactionPendingError()
+
         if function_name == SanityContractUpdater.SET_RATES_FUNCTION_NAME:
             coins, rates = args
             for coin_address, rate in zip(coins, rates):
-                self._prices[coin_address] = rate
+                self.prices[coin_address] = rate
             return SOME_TX_ADDRESS
 
         return super().call_remote_function(function_name, args, loop)
@@ -84,7 +88,7 @@ async def test_set_rates(event_loop):
     tx = await s.set_rates(SOME_OTHER_COIN_PRICES, event_loop)
 
     assert tx is not None
-    assert rateConverter.convert_price_to_contract_units(SOME_OTHER_OMG_ETH_RATE) == web3_connector._prices[OMG.address]
+    assert rateConverter.convert_price_to_contract_units(SOME_OTHER_OMG_ETH_RATE) == web3_connector.prices[OMG.address]
 
 
 @pytest.mark.asyncio
@@ -114,23 +118,23 @@ async def test_update_prices__significant_change__rates_get_updated(event_loop):
     s = SanityContractUpdater(web3_connector, ConfigFake())
 
     rs = await s.update_prices(DIFFERENT_FROM_INITIAL_OMG_ETH_PRICES, event_loop)
+    omg_price_after = web3_connector.prices[OMG.address]
 
     assert rs is not None
-    assert converter.convert_price_to_contract_units(DIFFERENT_FROM_INITIAL_OMG_ETH_RATE) == web3_connector._prices[
-        OMG.address]
+    assert converter.convert_price_to_contract_units(DIFFERENT_FROM_INITIAL_OMG_ETH_RATE) == omg_price_after
 
 
 @pytest.mark.asyncio
 async def test_update_prices__insignificant_change__rates_do_not_change(event_loop):
-    converter = ContractRateArgumentsConverter(market=ETH)
     web3_connector = Web3ConnectorFakeWithInitialOMG()
     s = SanityContractUpdater(web3_connector, ConfigFake())
 
-    omg_price_before = web3_connector._prices[OMG.address]
+    omg_price_before = web3_connector.prices[OMG.address]
     rs = await s.update_prices(SIMILAR_TO_INITIAL_COIN_PRICES, event_loop)
+    omg_price_after = web3_connector.prices[OMG.address]
 
     assert rs is None
-    assert omg_price_before == web3_connector._prices[OMG.address]
+    assert omg_price_before == omg_price_after
     # TODO: assert web3_connector.set_prices was not called!
 
 
@@ -140,9 +144,24 @@ async def test_update_prices__mixed_price_updates__only_major_changes_get_update
     assert False
 
 
+@pytest.mark.asyncio
+async def test_update_prices__two_very_fast_rates_updates__merged_update_sent_with_higher_gas_price(event_loop):
+    converter = ContractRateArgumentsConverter(market=ETH)
+    web3_connector = Web3ConnectorFakeWithInitialOMG()
+    s = SanityContractUpdater(web3_connector, ConfigFake())
+
+    rs = await s.update_prices(DIFFERENT_FROM_INITIAL_OMG_ETH_PRICES, event_loop)
+
+    web3_connector.raise_previous_transaction_pending = True
+    rs = await s.update_prices(SOME_OTHER_COIN_PRICES, event_loop)
+
+    assert rs is not None
+    # assert converter.convert_price_to_contract_units(DIFFERENT_FROM_INITIAL_OMG_ETH_RATE) == omg_price_after
+
+
 @pytest.mark.skip
 @pytest.mark.asyncio
-async def test_two_very_fast_rates_updates():
+async def test_update_prices__significant_change__node_accessed_to_verify_tx_confirmed():
     assert False
 
 

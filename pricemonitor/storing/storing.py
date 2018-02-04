@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from pricemonitor.storing.web3_connector import Web3ConnectionError
+from pricemonitor.storing.web3_connector import Web3ConnectionError, PreviousTransactionPendingError
 
 log = logging.getLogger(__name__)
 
@@ -26,8 +26,13 @@ class SanityContractUpdater:
 
         if rates_for_update:
             log.info(f'Update #{self._updates_requested}: {rates_for_update}')
-            rs = await self.set_rates(rates_for_update, loop)
-            self._updates_requested += 1
+            try:
+                rs = await self.set_rates(rates_for_update, loop)
+                self._updates_requested += 1
+            except PreviousTransactionPendingError:
+                # send request again with same nonce and a higher gas price
+                rs = None
+
             return rs
 
         log.debug("No updates required.\n")
@@ -81,12 +86,13 @@ class SanityContractUpdater:
 
         return updates
 
-    def _should_update_price(self, coin, market, previous_rate, current_rate):
+    @staticmethod
+    def _should_update_price(coin, market, previous_rate, current_rate):
         current_change = abs(current_rate - previous_rate) / previous_rate
         should_update = current_change > coin.volatility
-        log.debug((f'{coin.symbol + "/" + market.symbol + ":":10}\tprevious={previous_rate:<8.5}\t' +
-                   f'current={current_rate:<8.5}\tchange={current_change:<8.5}\t' +
-                   f'threshold={coin.volatility:<8.5}\tupdate={should_update}'))
+        log.debug((f'{coin.symbol + "/" + market.symbol + ":":10} previous={previous_rate:<10.7f} ' +
+                   f'current={current_rate:<10.7f} change={current_change:<10.7f} ' +
+                   f'threshold={coin.volatility:<10.7f} update={should_update}'))
         return should_update
 
     @staticmethod

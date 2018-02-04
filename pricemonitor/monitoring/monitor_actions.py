@@ -54,14 +54,20 @@ class PrintValuesAndAverageMonitor(PrintValuesMonitor):
 
 
 class ContractUpdaterMonitor(MonitorAction):
-    def __init__(self, config):
+    def __init__(self, config, force=False):
         super().__init__(config)
         self._print_monitor = PrintValuesMonitor(config)
         self._updater = SanityContractUpdater(Web3Connector(private_key=config.get_admin_private(),
                                                             contract_abi=config.get_smart_contract_abi(),
                                                             contract_address=config.get_smart_contract_address()),
                                               config=config)
+        self._force = force
 
     async def act(self, data, loop):
         await self._print_monitor.act(data, loop)
-        await self._updater.update_prices(coin_price_data=data, loop=loop)
+        await self._updater.update_prices(coin_price_data=data, force=self._force, loop=loop)
+
+
+class ContractUpdaterMonitorForce(ContractUpdaterMonitor):
+    def __init__(self, config, force=True):
+        super().__init__(config=config, force=force)

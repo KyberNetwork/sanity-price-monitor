@@ -19,11 +19,11 @@ class CoinVolatilityFile(CoinVolatility):
             return self._values['markets'][market][coin_symbol]
         except KeyError:
             log.info(f'Missing expected volatility for {coin_symbol}/{market}.')
-            raise CoinNotDefined(market=market, coin=coin_symbol)
+            raise CoinNotDefined('Expected volatility not defined for coin.', market=market, coin=coin_symbol)
 
 
 class CoinNotDefined(RuntimeError):
-    def __init__(self, market, coin):
-        super().__init__(f'Expected volatility not defined for {coin}/{market}.')
+    def __init__(self, msg, market, coin):
+        super().__init__(f'{msg} ({coin}/{market}).')
         self.market = market
         self.coin = coin

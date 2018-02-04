@@ -15,7 +15,7 @@ from pricemonitor.monitoring.monitor_actions import (
     PrintValuesMonitor,
     PrintValuesAndAverageMonitor,
     ContractUpdaterMonitor,
-)
+    ContractUpdaterMonitorForce)
 
 Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_millis')
 
@@ -41,19 +41,23 @@ class Tasks(Enum):
         monitor_action=ContractUpdaterMonitor,
         interval_in_millis=1 * 60 * 1_000)
 
+    UPDATE_CONTRACT_AVERAGE_LAST_SECOND_FORCE = Task(
+        exchange_data_action=Exchange.get_last_minute_trades_average_or_last_trade,
+        monitor_action=ContractUpdaterMonitorForce,
+        interval_in_millis=1 * 1_000)
+
 
 async def main(task, loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN, coin_volatility_path=COIN_VOLATILITY_PATH):
     config = Config(configuration_file_path=configuration_file_path,
                     coin_volatility=CoinVolatilityFile(coin_volatility_path))
     monitor = ExchangePriceMonitor(config.coins, config.market)
-    await monitor.monitor(
-        monitor_action=task.value.monitor_action(config),
-        interval_in_milliseconds=task.value.interval_in_millis,
-        loop=loop,
-        exchange_data_action=task.value.exchange_data_action)
+    await monitor.monitor(monitor_action=task.value.monitor_action(config),
+                          interval_in_milliseconds=task.value.interval_in_millis,
+                          loop=loop,
+                          exchange_data_action=task.value.exchange_data_action)
 
 
-def run_on_loop(task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE'):
+def run_on_loop(task_name='UPDATE_CONTRACT_AVERAGE_LAST_SECOND_FORCE'):
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
     logging.getLogger('asyncio').setLevel(logging.INFO)
     logging.getLogger('urllib3').setLevel(logging.INFO)

@@ -12,6 +12,7 @@ ccxt = "*"
 pycoin = "*"
 jsonrpc = "*"
 pandas = "*"
+fire = "*"
 
 
 [dev-packages]
