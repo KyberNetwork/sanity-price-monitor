@@ -59,7 +59,7 @@ class ContractUpdaterMonitor(MonitorAction):
         self._print_monitor = PrintValuesMonitor(config)
         self._updater = SanityContractUpdater(Web3Connector(private_key=config.private_key,
                                                             contract_abi=config.get_smart_contract_abi(),
-                                                            contract_address=config.get_smart_contract_address()),
+                                                            contract_address=config.contract_address),
                                               config=config)
         self._force = force
 

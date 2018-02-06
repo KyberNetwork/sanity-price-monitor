@@ -1,10 +1,7 @@
 import json
-import os
 from collections import namedtuple
 
 from pycoin.serialize import h2b
-
-from pricemonitor.exceptions import PriceMonitorException
 
 Coin = namedtuple('Coin', 'symbol, address, name, volatility')
 
@@ -12,15 +9,10 @@ Coin = namedtuple('Coin', 'symbol, address, name, volatility')
 class Config:
     _MARKET_SYMBOL = 'ETH'
 
-    # TODO: add option to read from environment variable
-    _PRIVATE_KEY_PATH = 'KEY.json'
-
     _CONTRACT_ABI_PATH = 'smart-contracts/contracts/abi/SanityRates.abi'
 
-    # TODO: get from actual contract
-    SANITY_ADDRESS = '5735d385811e423D0E33a93861E687AEb590a00A'
-
-    def __init__(self, configuration_file_path, coin_volatility, private_key=None):
+    def __init__(self, configuration_file_path, coin_volatility, contract_address, private_key=None):
+        self.contract_address = contract_address
         self._configuration_file_path = configuration_file_path
         self._coin_volatility = coin_volatility
         self._config = self._load_config()
@@ -31,7 +23,7 @@ class Config:
             for symbol, params in self._config['tokens'].items()
             if symbol != self.market.symbol
         ]
-        self.private_key = self._prepare_private_key(private_key)
+        self.private_key = h2b(private_key)
 
     def _prepare_coin_from_config_token(self, symbol, params):
         return Coin(symbol=symbol,
@@ -44,36 +36,6 @@ class Config:
         with open(Config._CONTRACT_ABI_PATH) as contract_abi_file:
             return contract_abi_file.read()
 
-    @staticmethod
-    def get_smart_contract_address():
-        return Config.SANITY_ADDRESS
-
     def _load_config(self):
         with open(self._configuration_file_path) as config_file:
             return json.load(config_file)
-
-    def _prepare_private_key(self, private):
-        if private is None:
-            private = os.environ.get("SANITY_PRIVATE_KEY")
-
-        if private is None:
-            private = self._read_private_from_file()
-
-        if private is None:
-            raise MissingPrivateKey('Please configure private key in environment variable SANITY_PRIVATE_KEY or in '
-                                    'Key.json file')
-
-        return h2b(private)
-
-    @staticmethod
-    def _read_private_from_file():
-        try:
-            with open(Config._PRIVATE_KEY_PATH) as key_file:
-                key_data = json.load(key_file)
-                return key_data['private']
-        except FileNotFoundError:
-            return None
-
-
-class MissingPrivateKey(RuntimeError, PriceMonitorException):
-    pass

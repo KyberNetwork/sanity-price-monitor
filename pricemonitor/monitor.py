@@ -48,9 +48,11 @@ class Tasks(Enum):
         interval_in_millis=1 * 1_000)
 
 
-async def main(task, loop, configuration_file_path, coin_volatility_path=COIN_VOLATILITY_PATH, private_key=None):
+async def main(
+        task, loop, configuration_file_path, contract_address, private_key, coin_volatility_path=COIN_VOLATILITY_PATH):
     config = Config(configuration_file_path=configuration_file_path,
                     coin_volatility=CoinVolatilityFile(coin_volatility_path),
+                    contract_address=contract_address,
                     private_key=private_key)
     monitor = ExchangePriceMonitor(config.coins, config.market)
     await monitor.monitor(monitor_action=task.value.monitor_action(config),
@@ -59,8 +61,10 @@ async def main(task, loop, configuration_file_path, coin_volatility_path=COIN_VO
                           exchange_data_action=task.value.exchange_data_action)
 
 
-def run_on_loop(
-        task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE', private_key=None, configuration_file_path=DEFUALT_CONFIG_FILE):
+def run_on_loop(private_key,
+                contract_address,
+                task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE',
+                configuration_file_path=DEFUALT_CONFIG_FILE):
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
     logging.getLogger('asyncio').setLevel(logging.INFO)
     logging.getLogger('urllib3').setLevel(logging.INFO)
@@ -77,6 +81,7 @@ def run_on_loop(
     loop.run_until_complete(main(task=Tasks[task_name],
                                  loop=loop,
                                  private_key=private_key,
+                                 contract_address=contract_address,
                                  configuration_file_path=configuration_file_path))
 
 
