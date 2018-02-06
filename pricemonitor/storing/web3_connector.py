@@ -45,6 +45,7 @@ class Web3Connector:
             log.exception(msg)
             raise Web3ConnectionError(msg, call_function, function_name, args) from e
         except ValueError as e:
+            log.exception(e)
             raise PreviousTransactionPendingError() from e
 
 
