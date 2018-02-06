@@ -27,7 +27,8 @@ def merge_two_dicts(x, y):
 def json_call(method_name, params):
     # TODO: update to server address
     # url = 'http://localhost:8545'
-    url = 'https://kovan.infura.io'
+    # url = 'https://kovan.infura.io'
+    url = 'https://mainnet.infura.io'
     headers = {'content-type': 'application/json'}
     # Example echo method
     payload = {
