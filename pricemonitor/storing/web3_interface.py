@@ -82,8 +82,7 @@ def make_transaction(src_priv_key, dst_address, value, data):
     # print len(data_as_string)
     # if len(data) > 0:
     #    data_as_string = "0x" + data_as_string
-    # start_gas = eval_startgas(src_address, dst_address, value,
-    # data_as_string, gas_price)
+    # start_gas = eval_startgas(src_address, dst_address, value, data_as_string, gas_price)
     start_gas = "0xF4240"
 
     nonce = int(nonce, 16)

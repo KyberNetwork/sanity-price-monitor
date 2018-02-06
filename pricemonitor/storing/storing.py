@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 class SanityContractUpdater:
     SET_RATES_FUNCTION_NAME = 'setSanityRates'
-    GET_RATE_FUNCTION_NAME = 'getSanityRate'
+    GET_RATE_FUNCTION_NAME = 'tokenRate'
 
     def __init__(self, web3_connector, config):
         self._web3 = web3_connector
@@ -129,8 +129,9 @@ class ContractRateArgumentsConverter:
 
         return [sources, rates]
 
-    def format_coin_for_getter(self, coin):
-        return [coin.address, self._market.address]
+    @staticmethod
+    def format_coin_for_getter(coin):
+        return [coin.address]
 
     @staticmethod
     def convert_rate_from_contract_units(rate_from_contract):
