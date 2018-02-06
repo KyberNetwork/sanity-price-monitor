@@ -17,9 +17,11 @@ Enter the folder and use pipenv to install library dependencies:
 ## Running the monitor
 
     $ cd sanity-price-monitor
+    $ pipenv shell
     $ python -m pricemonitor.monitor
     
 ## Running coverage
 
     $ cd sanity-price-monitor/tests
+    $ pipenv shell
     $ py.test --cov-report html --cov=pricemonitor --verbose && open htmlcov/index.html

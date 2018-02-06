@@ -21,6 +21,7 @@ Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_mil
 
 CONFIG_FILE_PATH_DEV = 'smart-contracts/deployment_dev.json'
 CONFIG_FILE_PATH_KOVAN = 'smart-contracts/deployment_kovan.json'
+DEFUALT_CONFIG_FILE = CONFIG_FILE_PATH_KOVAN
 
 COIN_VOLATILITY_PATH = 'coin_volatility.json'
 
@@ -47,8 +48,7 @@ class Tasks(Enum):
         interval_in_millis=1 * 1_000)
 
 
-async def main(task, loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN, coin_volatility_path=COIN_VOLATILITY_PATH,
-               private_key=None):
+async def main(task, loop, configuration_file_path, coin_volatility_path=COIN_VOLATILITY_PATH, private_key=None):
     config = Config(configuration_file_path=configuration_file_path,
                     coin_volatility=CoinVolatilityFile(coin_volatility_path),
                     private_key=private_key)
@@ -59,7 +59,8 @@ async def main(task, loop, configuration_file_path=CONFIG_FILE_PATH_KOVAN, coin_
                           exchange_data_action=task.value.exchange_data_action)
 
 
-def run_on_loop(task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE', private_key=None):
+def run_on_loop(
+        task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE', private_key=None, configuration_file_path=DEFUALT_CONFIG_FILE):
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
     logging.getLogger('asyncio').setLevel(logging.INFO)
     logging.getLogger('urllib3').setLevel(logging.INFO)
@@ -73,7 +74,10 @@ def run_on_loop(task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE', private_key=Non
     # finally:
     #     log.info('Closing event loop')
     #     loop.close()
-    loop.run_until_complete(main(task=Tasks[task_name], loop=loop, private_key=private_key))
+    loop.run_until_complete(main(task=Tasks[task_name],
+                                 loop=loop,
+                                 private_key=private_key,
+                                 configuration_file_path=configuration_file_path))
 
 
 if __name__ == '__main__':

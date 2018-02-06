@@ -88,8 +88,14 @@ class SanityContractUpdater:
 
     @staticmethod
     def _should_update_price(coin, market, previous_rate, current_rate):
-        current_change = abs(current_rate - previous_rate) / previous_rate
-        should_update = current_change > coin.volatility
+        if previous_rate == 0:
+            log.debug(f'{coin.symbol} has no previous rate stored. Updating to current rate.')
+            current_change = 1
+            should_update = True
+        else:
+            current_change = abs(current_rate - previous_rate) / previous_rate
+            should_update = current_change > coin.volatility
+
         log.debug((f'{coin.symbol + "/" + market.symbol + ":":10} previous={previous_rate:<10.7f} ' +
                    f'current={current_rate:<10.7f} change={current_change:<10.7f} ' +
                    f'threshold={coin.volatility:<10.7f} update={should_update}'))
