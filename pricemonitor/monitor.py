@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import time
 from collections import namedtuple
 from enum import Enum
 from functools import partial
@@ -16,6 +17,7 @@ from pricemonitor.monitoring.monitor_actions import (
     PrintValuesAndAverageMonitor,
     ContractUpdaterMonitor,
     ContractUpdaterMonitorForce)
+from storing.ethereum_nodes import Network
 
 Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_millis')
 
@@ -24,6 +26,8 @@ CONFIG_FILE_PATH_KOVAN = 'smart-contracts/deployment_kovan.json'
 DEFUALT_CONFIG_FILE = CONFIG_FILE_PATH_KOVAN
 
 COIN_VOLATILITY_PATH = 'coin_volatility.json'
+
+log = logging.getLogger(__name__)
 
 
 class Tasks(Enum):
@@ -48,10 +52,11 @@ class Tasks(Enum):
         interval_in_millis=1 * 1_000)
 
 
-async def main(
-        task, loop, configuration_file_path, contract_address, private_key, coin_volatility_path=COIN_VOLATILITY_PATH):
+async def main(task, loop, configuration_file_path, contract_address, private_key, network,
+               coin_volatility_path=COIN_VOLATILITY_PATH):
     config = Config(configuration_file_path=configuration_file_path,
                     coin_volatility=CoinVolatilityFile(coin_volatility_path),
+                    network=network,
                     contract_address=contract_address,
                     private_key=private_key)
     monitor = ExchangePriceMonitor(config.coins, config.market)
@@ -63,6 +68,7 @@ async def main(
 
 def run_on_loop(private_key,
                 contract_address,
+                network_name,
                 task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE',
                 configuration_file_path=DEFUALT_CONFIG_FILE):
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
@@ -80,10 +86,16 @@ def run_on_loop(private_key,
     #     loop.close()
     loop.run_until_complete(main(task=Tasks[task_name],
                                  loop=loop,
+                                 network=Network[network_name].value,
                                  private_key=private_key,
                                  contract_address=contract_address,
                                  configuration_file_path=configuration_file_path))
 
 
 if __name__ == '__main__':
-    fire.Fire(run_on_loop)
+    while True:
+        try:
+            fire.Fire(run_on_loop)
+        except Exception as e:
+            log.exception("Crashed with this exception: ", e)
+            time.sleep(2)

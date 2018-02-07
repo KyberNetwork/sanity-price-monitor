@@ -1,32 +1,41 @@
 import logging
 from functools import partial
 
-from pricemonitor.storing import web3_interface as web3
-
 # TODO: use correct chain in etherscan
 ETHERSCAN_PREFIX = "https://kovan.etherscan.io/tx/"
 
 log = logging.getLogger(__name__)
 
+NUMBER_OF_ATTEMPTS_ON_FAILURE = 10
+
 
 class Web3Connector:
-    def __init__(self, private_key, contract_abi, contract_address):
+    def __init__(self, web3_interface, private_key, contract_abi, contract_address):
+        self._web3_interface = web3_interface
         self._private_key = private_key
         self._contract_abi = contract_abi
         self._contract_address = contract_address
 
     async def call_local_function(self, function_name, args, loop):
         rs = await self._wrap_sync_function(
-            call_function=web3.call_const_function, function_name=function_name, args=args, loop=loop)
+            call_function=self._web3_interface.call_const_function, function_name=function_name, args=args, loop=loop)
 
         log.debug(f"{function_name}({args})\n\t-> {rs}")
         return rs
 
     async def call_remote_function(self, function_name, args, loop):
-        rs = await self._wrap_sync_function(
-            call_function=web3.call_function, function_name=function_name, args=args, loop=loop)
+        for attempt in range(NUMBER_OF_ATTEMPTS_ON_FAILURE):
+            try:
+                rs = await self._wrap_sync_function(
+                    call_function=self._web3_interface.call_function, function_name=function_name, args=args, loop=loop)
+                break
+            except Web3ConnectionError:
+                self._web3_interface.use_next_node()
+        else:
+            log.warning('Tried multiple times to access Ethereum nodes. Giving up.')
+            return None
 
-        log.info(f"{function_name}({args})\n\t-> {rs} ({ETHERSCAN_PREFIX}{rs})")
+        log.info(f"{function_name}({args})\n\t-> {rs} ({self._web3_interface.prepare_etherscan_url(rs)})")
         return rs
 
     async def _wrap_sync_function(self, call_function, function_name, args, loop):
@@ -37,6 +46,7 @@ class Web3Connector:
                            contract_abi=self._contract_abi,
                            function_name=function_name,
                            args=args)
+
         try:
             rs = await loop.run_in_executor(executor=None, func=web3call)
             return rs

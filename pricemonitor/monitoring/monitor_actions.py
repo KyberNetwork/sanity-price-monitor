@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from pricemonitor.storing.storing import SanityContractUpdater
 from pricemonitor.storing.web3_connector import Web3Connector
+from pricemonitor.storing.web3_interface import Web3Interface
 from util.calculations import calculate_average
 from util.time import prepare_time_str
 
@@ -59,7 +60,8 @@ class ContractUpdaterMonitor(MonitorAction):
         self._print_monitor = PrintValuesMonitor(config)
         self._updater = SanityContractUpdater(Web3Connector(private_key=config.private_key,
                                                             contract_abi=config.get_smart_contract_abi(),
-                                                            contract_address=config.contract_address),
+                                                            contract_address=config.contract_address,
+                                                            web3_interface=Web3Interface(config.network)),
                                               config=config)
         self._force = force
 

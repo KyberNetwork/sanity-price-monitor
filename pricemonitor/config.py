@@ -11,7 +11,8 @@ class Config:
 
     _CONTRACT_ABI_PATH = 'smart-contracts/contracts/abi/SanityRates.abi'
 
-    def __init__(self, configuration_file_path, coin_volatility, contract_address, private_key=None):
+    def __init__(self, configuration_file_path, coin_volatility, contract_address, network, private_key=None):
+        self.network = network
         self.contract_address = contract_address
         self._configuration_file_path = configuration_file_path
         self._coin_volatility = coin_volatility
