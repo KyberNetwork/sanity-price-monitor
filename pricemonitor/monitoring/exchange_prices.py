@@ -14,7 +14,7 @@ def calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds):
 class ExchangePriceMonitor:
     def __init__(self, coins, market, exchanges=None):
         if exchanges is None:
-            exchanges = [ExchangeName.BINANCE, ExchangeName.BITTREX]
+            exchanges = [ExchangeName.BINANCE, ExchangeName.BITTREX, ExchangeName.HUOBI]
 
         self._coins = coins
         self._market = market

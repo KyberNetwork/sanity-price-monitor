@@ -27,6 +27,8 @@ DEFUALT_CONFIG_FILE = CONFIG_FILE_PATH_KOVAN
 
 COIN_VOLATILITY_PATH = 'coin_volatility.json'
 
+WAITING_TIME_IN_SECONDS_BEFORE_RESTARTING_AFTER_CRASH = 10
+
 log = logging.getLogger(__name__)
 
 
@@ -98,4 +100,4 @@ if __name__ == '__main__':
             fire.Fire(run_on_loop)
         except Exception as e:
             log.exception("Crashed with this exception: ", e)
-            time.sleep(2)
+            time.sleep(WAITING_TIME_IN_SECONDS_BEFORE_RESTARTING_AFTER_CRASH)

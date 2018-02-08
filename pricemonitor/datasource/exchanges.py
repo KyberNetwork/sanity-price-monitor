@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 class ExchangeName(Enum):
     BINANCE = ccxt.binance
     BITTREX = ccxt.bittrex
+    HUOBI = ccxt.huobipro
 
 
 class Exchange:
