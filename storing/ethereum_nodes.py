@@ -26,7 +26,5 @@ class Network(Enum):
                                      'https://mew.giveth.io/'],
                               etherscan_prefix='https://etherscan.io/tx/')
 
-    KOVAN = EthereumNetwork(nodes=[
-        # 'https://kovan.etherscan.io',
-        'https://kovan.infura.io'],
-        etherscan_prefix='https://kovan.etherscan.io/tx/')
+    KOVAN = EthereumNetwork(nodes=['https://kovan.infura.io'],
+                            etherscan_prefix='https://kovan.etherscan.io/tx/')

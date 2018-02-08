@@ -1,7 +1,10 @@
+# TODO: use correct chain in etherscan
+import asyncio
 import logging
 from functools import partial
 
-# TODO: use correct chain in etherscan
+from pricemonitor.exceptions import PriceMonitorException
+
 ETHERSCAN_PREFIX = "https://kovan.etherscan.io/tx/"
 
 log = logging.getLogger(__name__)
@@ -17,8 +20,18 @@ class Web3Connector:
         self._contract_address = contract_address
 
     async def call_local_function(self, function_name, args, loop):
-        rs = await self._wrap_sync_function(
-            call_function=self._web3_interface.call_const_function, function_name=function_name, args=args, loop=loop)
+        for attempt in range(NUMBER_OF_ATTEMPTS_ON_FAILURE):
+            try:
+                rs = await self._wrap_sync_function(call_function=self._web3_interface.call_const_function,
+                                                    function_name=function_name,
+                                                    args=args,
+                                                    loop=loop)
+                break
+            except Web3ConnectionError:
+                self._web3_interface.use_next_node()
+        else:
+            log.warning('Tried multiple times to access Ethereum nodes. Giving up.')
+            return None
 
         log.debug(f"{function_name}({args})\n\t-> {rs}")
         return rs
@@ -26,11 +39,18 @@ class Web3Connector:
     async def call_remote_function(self, function_name, args, loop):
         for attempt in range(NUMBER_OF_ATTEMPTS_ON_FAILURE):
             try:
-                rs = await self._wrap_sync_function(
-                    call_function=self._web3_interface.call_function, function_name=function_name, args=args, loop=loop)
+                rs = await self._wrap_sync_function(call_function=self._web3_interface.call_function,
+                                                    function_name=function_name,
+                                                    args=args,
+                                                    loop=loop)
                 break
             except Web3ConnectionError:
                 self._web3_interface.use_next_node()
+            except PreviousTransactionPendingError:
+                log.warning('Previous transaction failed, sleeping for 10 seconds.')
+                log.warning('TODO: increase gas_price and try again using the same nonce.')
+                # TODO: increase gas_price and try again using same nonce.
+                asyncio.sleep(10)
         else:
             log.warning('Tried multiple times to access Ethereum nodes. Giving up.')
             return None
@@ -59,7 +79,7 @@ class Web3Connector:
             raise PreviousTransactionPendingError() from e
 
 
-class PreviousTransactionPendingError(RuntimeError):
+class PreviousTransactionPendingError(RuntimeError, PriceMonitorException):
     pass
 
 
