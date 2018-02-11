@@ -1,6 +1,6 @@
 import logging
 
-from storing.ethereum_nodes import EthereumNetwork
+from pricemonitor.storing.ethereum_nodes import EthereumNetwork
 
 logging.disable(logging.WARNING)
 

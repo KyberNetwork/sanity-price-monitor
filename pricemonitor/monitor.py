@@ -1,12 +1,8 @@
 import asyncio
-import logging
-import os
-import time
+import logging.config
 from collections import namedtuple
 from enum import Enum
 from functools import partial
-
-import fire
 
 from pricemonitor.coin_volatility import CoinVolatilityFile
 from pricemonitor.config import Config
@@ -17,7 +13,7 @@ from pricemonitor.monitoring.monitor_actions import (
     PrintValuesAndAverageMonitor,
     ContractUpdaterMonitor,
     ContractUpdaterMonitorForce)
-from storing.ethereum_nodes import Network
+from pricemonitor.storing.ethereum_nodes import Network
 
 Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_millis')
 
@@ -26,8 +22,6 @@ CONFIG_FILE_PATH_KOVAN = 'smart-contracts/deployment_kovan.json'
 DEFUALT_CONFIG_FILE = CONFIG_FILE_PATH_KOVAN
 
 COIN_VOLATILITY_PATH = 'coin_volatility.json'
-
-WAITING_TIME_IN_SECONDS_BEFORE_RESTARTING_AFTER_CRASH = 10
 
 log = logging.getLogger(__name__)
 
@@ -73,10 +67,6 @@ def run_on_loop(private_key,
                 network_name,
                 task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE',
                 configuration_file_path=DEFUALT_CONFIG_FILE):
-    logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
-    logging.getLogger('asyncio').setLevel(logging.INFO)
-    logging.getLogger('urllib3').setLevel(logging.INFO)
-    log = logging.getLogger(__name__)
     log.debug('Starting event loop')
     loop = asyncio.get_event_loop()
     # TODO: ccxt raises exceptions when the code runs from inside a try-finally for some reason:
@@ -92,12 +82,3 @@ def run_on_loop(private_key,
                                  private_key=private_key,
                                  contract_address=contract_address,
                                  configuration_file_path=configuration_file_path))
-
-
-if __name__ == '__main__':
-    while True:
-        try:
-            fire.Fire(run_on_loop)
-        except Exception as e:
-            log.exception("Crashed with this exception: ", e)
-            time.sleep(WAITING_TIME_IN_SECONDS_BEFORE_RESTARTING_AFTER_CRASH)

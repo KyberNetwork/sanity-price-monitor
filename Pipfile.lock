@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6fbda0d77cecbe576abfe06d6ec800e7e36a0dbf60296dcf2230af441635add3"
+            "sha256": "210b7121bd3ebd019e40a2a8c517b4890cb91564ef988e48947c0df6339da581"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -96,10 +96,10 @@
         },
         "ccxt": {
             "hashes": [
-                "sha256:31e86068017c3d69053955a1620ce86c5b68ba83f2afe430a8bdbf1ee609b6fb",
-                "sha256:6d6ebe5dea557b96007b6138d0a6fc0adecb61f4b6e85369fd2134a12c5ab9ec"
+                "sha256:3d0287383764714f555192b1f6d9c95cb5f97673a1f52cdb62bc3466e8b096f9",
+                "sha256:c75b28b2369810a685fc1fab68c27c6bd8ce011f55875ab7fca669a38680da71"
             ],
-            "version": "==1.10.1050"
+            "version": "==1.10.1053"
         },
         "certifi": {
             "hashes": [
@@ -151,6 +151,12 @@
                 "sha256:3fa3d4fa2bf08fc243961835ac10140d5f954c6cc251be40e44af8cd584df00f"
             ],
             "version": "==1.2"
+        },
+        "loggly-python-handler": {
+            "hashes": [
+                "sha256:dfb8cfba6f52af58261d8064fff1bc830697303a4274da5e7dee417206476400"
+            ],
+            "version": "==1.0.0"
         },
         "multidict": {
             "hashes": [
@@ -386,6 +392,12 @@
             ],
             "markers": "python_version >= '3.5'",
             "version": "==2.18.4"
+        },
+        "requests-futures": {
+            "hashes": [
+                "sha256:a9ca2c3480b6fac29ec5de59c146742e2ab2b60f8c68581766094edb52ea7bad"
+            ],
+            "version": "==0.9.7"
         },
         "rlp": {
             "hashes": [

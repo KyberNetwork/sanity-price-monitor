@@ -35,7 +35,7 @@ class SanityContractUpdater:
 
             return rs
 
-        log.debug("No updates required.\n")
+        log.info("No updates required.\n")
         return None
 
     async def set_rates(self, coin_price_data, loop):

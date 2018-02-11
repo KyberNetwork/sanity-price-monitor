@@ -24,7 +24,7 @@ class Exchange:
             trades = await self._exchange.fetch_trades(symbol=_prepare_symbol(coin, market), limit=1)
             return trades[0]['price']
         except Exception as e:
-            log.warning(e)
+            log.debug(e)
             return None
 
     async def get_average_of_trades_last_minute(self, coin, market):
@@ -62,7 +62,7 @@ class Exchange:
         try:
             trades = await self._exchange.fetch_trades(symbol=_prepare_symbol(coin, market), limit=limit, since=since)
         except Exception as e:
-            log.warning(e)
+            log.debug(e)
             return None
 
         prices = [
