@@ -5,7 +5,7 @@ import pytest
 
 from pricemonitor.config import Coin
 from pricemonitor.storing.storing import SanityContractUpdater, ContractRateArgumentsConverter
-from pricemonitor.storing.web3_connector import PreviousTransactionPendingError
+from pricemonitor.storing.web3_connector import PreviousTransactionPending
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
@@ -56,7 +56,7 @@ class Web3ConnectorFakeWithInitialOMG(Web3ConnectorFake):
 
     async def call_remote_function(self, function_name, args, loop):
         if self.raise_previous_transaction_pending:
-            raise PreviousTransactionPendingError()
+            raise PreviousTransactionPending()
 
         if function_name == SanityContractUpdater.SET_RATES_FUNCTION_NAME:
             coins, rates = args
@@ -145,18 +145,32 @@ async def test_update_prices__mixed_price_updates__only_major_changes_get_update
 
 
 @pytest.mark.asyncio
-async def test_update_prices__two_very_fast_rates_updates__merged_update_sent_with_higher_gas_price(event_loop):
-    converter = ContractRateArgumentsConverter(market=ETH)
+async def test_update_prices__two_very_fast_rates_updates__second_tx_sent(event_loop):
     web3_connector = Web3ConnectorFakeWithInitialOMG()
     s = SanityContractUpdater(web3_connector, ConfigFake())
 
-    rs = await s.update_prices(DIFFERENT_FROM_INITIAL_OMG_ETH_PRICES, event_loop)
+    rs1 = await s.update_prices(DIFFERENT_FROM_INITIAL_OMG_ETH_PRICES, event_loop)
 
     web3_connector.raise_previous_transaction_pending = True
-    rs = await s.update_prices(SOME_OTHER_COIN_PRICES, event_loop)
+    rs2 = await s.update_prices(SOME_OTHER_COIN_PRICES, event_loop)
 
-    assert rs is not None
-    # assert converter.convert_price_to_contract_units(DIFFERENT_FROM_INITIAL_OMG_ETH_RATE) == omg_price_after
+    assert rs2 is not None
+    assert rs1 != rs2
+
+
+# @pytest.mark.asyncio
+# async def test_update_prices__two_very_fast_rates_updates__updates_merged(event_loop):
+#     web3_connector = Web3ConnectorFakeWithInitialOMG()
+#     s = SanityContractUpdater(web3_connector, ConfigFake())
+#
+#     await s.update_prices(DIFFERENT_FROM_INITIAL_OMG_ETH_PRICES, event_loop)
+#     c1 = capture_connector_changes
+#
+#     web3_connector.raise_previous_transaction_pending = True
+#     await s.update_prices(OMG_AND_SOME_OTHER_COIN_PRICES, event_loop)
+#     c2 = capture_connector_changes
+#
+#     assert c2 includes c1 and other coin update
 
 
 @pytest.mark.skip

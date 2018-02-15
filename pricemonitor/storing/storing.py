@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from pricemonitor.storing.web3_connector import Web3ConnectionError, PreviousTransactionPendingError
+from pricemonitor.storing.web3_connector import Web3ConnectionError, PreviousTransactionPending
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class SanityContractUpdater:
             try:
                 rs = await self.set_rates(rates_for_update, loop)
                 self._updates_requested += 1
-            except PreviousTransactionPendingError:
+            except PreviousTransactionPending:
                 # send request again with same nonce and a higher gas price
                 rs = None
 
@@ -41,7 +41,7 @@ class SanityContractUpdater:
     async def set_rates(self, coin_price_data, loop):
         rs = await self._web3.call_remote_function(
             function_name=SanityContractUpdater.SET_RATES_FUNCTION_NAME,
-            args=(self._rates_converter.format_coin_prices_for_setter(coin_price_data)),
+            eth_args=(self._rates_converter.format_coin_prices_for_setter(coin_price_data)),
             loop=loop)
         return rs
 
@@ -49,7 +49,7 @@ class SanityContractUpdater:
         try:
             local_function_response = await self._web3.call_local_function(
                 function_name=SanityContractUpdater.GET_RATE_FUNCTION_NAME,
-                args=(self._rates_converter.format_coin_for_getter(coin)),
+                eth_args=(self._rates_converter.format_coin_for_getter(coin)),
                 loop=loop)
             # A single value is returned
             rate_from_contract = local_function_response[0]

@@ -8,6 +8,9 @@ from ethereum import utils, transactions
 from ethereum.abi import ContractTranslator
 from pycoin.serialize import b2h, h2b
 
+ADDITIONAL_START_GAS_TO_BE_ON_THE_SAFE_SIDE = 50_000
+INCREASED_GAS_PRICE_FACTOR = 1.1
+
 log = logging.getLogger(__name__)
 
 
@@ -15,23 +18,25 @@ class Web3Interface:
     def __init__(self, network):
         self._network = network
 
-    def call_function(self, priv_key, value, contract_hash, contract_abi, function_name, args):
+    def call_function(self, priv_key, value, contract_hash, contract_abi, function_name, eth_args,
+                      use_increased_gas_price=False):
         translator = ContractTranslator(json.loads(contract_abi))
-        call = translator.encode_function_call(function_name, args)
-        return self._make_transaction(priv_key, contract_hash, value, call)
+        call = translator.encode_function_call(function_name, eth_args)
+        return self._make_transaction(src_priv_key=priv_key, dst_address=contract_hash, value=value, data=call,
+                                      use_increased_gas_price=use_increased_gas_price)
 
-    def call_const_function(self, priv_key, value, contract_hash, contract_abi, function_name, args):
+    def call_const_function(self, priv_key, value, contract_hash, contract_abi, function_name, eth_args):
         # src_address = b2h(utils.privtoaddr(priv_key))
         translator = ContractTranslator(json.loads(contract_abi))
-        call = translator.encode_function_call(function_name, args)
+        call = translator.encode_function_call(function_name, eth_args)
         # nonce = get_num_transactions(src_address)
         # gas_price = get_gas_price_in_wei()
 
         # start_gas = eval_startgas(
         # src_address, contract_hash, value, b2h(call), gas_price)
-        # nonce = int(nonce, 16)
-        # gas_price = int(gas_price, 16)
-        # start_gas = int(start_gas, 16) + 100000
+        # nonce = int(nonce, base=16)
+        # gas_price = int(gas_price, base=16)
+        # start_gas = int(start_gas, base=16) + 100000
         # start_gas = 7612288
 
         params = {
@@ -95,7 +100,7 @@ class Web3Interface:
             return result
 
     def _get_num_transactions(self, address):
-        params = ["0x" + address, "pending"]
+        params = [f"0x{address}", "pending"]
         nonce = self._json_call("eth_getTransactionCount", params)
         return nonce
 
@@ -103,42 +108,34 @@ class Web3Interface:
         return self._json_call("eth_gasPrice", [])
 
     def _eval_startgas(self, src, dst, value, data, gas_price):
-        params = {"value": "0x" + str(value),
-                  "gasPrice": gas_price}
+        params = {
+            "value": f"0x{value}",
+            "gasPrice": gas_price,
+            "from": f"0x{src}",
+            "to": f"0x{dst}",
+        }
         if len(data) > 0:
-            params["data"] = "0x" + str(data)
-        if len(dst) > 0:
-            params["to"] = "0x" + dst
+            params["data"] = f"0x{data}"
 
         return self._json_call("eth_estimateGas", [params])
 
-    # global_nonce = -1
-
-    def _make_transaction(self, src_priv_key, dst_address, value, data):
-        # global global_nonce
-
+    def _make_transaction(self, src_priv_key, dst_address, value, data, use_increased_gas_price):
         src_address = b2h(utils.privtoaddr(src_priv_key))
-        nonce = self._get_num_transactions(src_address)
-        gas_price = self._get_gas_price_in_wei()
-        data_as_string = b2h(data)
-        # print len(data_as_string)
-        # if len(data) > 0:
-        #    data_as_string = "0x" + data_as_string
-        # start_gas = eval_startgas(src_address, dst_address, value, data_as_string, gas_price)
-        start_gas = "0xF4240"
+        nonce_rs = self._get_num_transactions(src_address)
+        nonce = int(nonce_rs, base=16)
+        log.debug(f"Using nonce {nonce}.")
 
-        nonce = int(nonce, 16)
-        # if(global_nonce < 0):
-        # global_nonce = nonce
+        gas_price_rs = self._get_gas_price_in_wei()
+        gas_price = int(gas_price_rs, base=16)
+        if use_increased_gas_price:
+            log.debug(f"Using increased gas price.")
+            gas_price = int(gas_price * INCREASED_GAS_PRICE_FACTOR)
+        log.debug(f"gas price is {gas_price}")
 
-        # nonce = global_nonce
-        # global_nonce += 1
-
-        # print(nonce)
-
-        gas_price = int(gas_price, 16)
-        # int(gas_price, 16)/20
-        start_gas = int(start_gas, 16) + 100000
+        start_gas_rs = self._eval_startgas(src=src_address, dst=dst_address, value=value, data=b2h(data),
+                                           gas_price=gas_price_rs)
+        start_gas = int(start_gas_rs, base=16) + ADDITIONAL_START_GAS_TO_BE_ON_THE_SAFE_SIDE
+        log.debug(f"Estimated start gas is {start_gas}")
 
         tx = transactions.Transaction(nonce,
                                       gas_price,
