@@ -40,7 +40,7 @@ class Compare:
         rs = self._w3.call_const_function(contract_hash=self.main_contract_address,
                                           contract_abi=self.main_contract_abi,
                                           function_name='getExpectedRate',
-                                          eth_args=[token.address, base_token.address],
+                                          eth_args=[token.address, base_token.address, 1],
                                           priv_key=None, value=None)
         return rs[0]
 
