@@ -111,8 +111,8 @@ def main(deployment_file_path, main_contract_address=MAIN_CONTRACT_ADDRESS, main
 
 
 if __name__ == '__main__':
-    # logging.config.fileConfig('logging.conf')
-    logging.config.fileConfig('logging_local.conf')
+    logging.config.fileConfig('logging.conf')
+    # logging.config.fileConfig('logging_local.conf')
     logger = logging.getLogger('SOS')
 
     fire.Fire(main)
