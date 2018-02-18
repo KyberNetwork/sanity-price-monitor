@@ -1,5 +1,5 @@
 # Sanity Price Monitor
-Determines 
+Determines maximum conversion rates for the main contract.
 
 # Installing
 ## Clone the repo
