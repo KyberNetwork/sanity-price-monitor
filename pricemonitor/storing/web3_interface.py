@@ -15,6 +15,12 @@ log = logging.getLogger(__name__)
 
 
 class Web3Interface:
+    # Options for defaultBlock parameter: HEX String of block, "earlist", "latest" and "pending".
+    # See https://github.com/ethereum/wiki/wiki/JSON-RPC#the-default-block-parameter
+    DEFAULT_BLOCK_EARLIEST = "earliest"
+    DEFAULT_BLOCK_LATEST = "latest"
+    DEFAULT_BLOCK_PENDING = "pending"
+
     def __init__(self, network):
         self._network = network
 
@@ -100,7 +106,11 @@ class Web3Interface:
             return result
 
     def _get_num_transactions(self, address):
-        params = [f"0x{address}", "pending"]
+        """Query Ethereum node to get the number of committed transactions.
+
+        See https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_gettransactioncount
+        """
+        params = [f"0x{address}", __class__.DEFAULT_BLOCK_LATEST]
         nonce = self._json_call("eth_getTransactionCount", params)
         return nonce
 
