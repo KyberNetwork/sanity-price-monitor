@@ -17,9 +17,8 @@ from pricemonitor.storing.ethereum_nodes import Network
 
 Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_millis')
 
-CONFIG_FILE_PATH_DEV = 'smart-contracts/deployment_dev.json'
-CONFIG_FILE_PATH_KOVAN = 'smart-contracts/deployment_kovan.json'
-DEFUALT_CONFIG_FILE = CONFIG_FILE_PATH_KOVAN
+CONTRACT_CONFIG_MAINNET = 'smart-contracts/web3deployment/mainnet_production.json'
+CONTRACT_CONFIG_DEFAULT = CONTRACT_CONFIG_MAINNET
 
 COIN_VOLATILITY_PATH = 'coin_volatility.json'
 
@@ -66,7 +65,7 @@ def run_on_loop(private_key,
                 contract_address,
                 network_name,
                 task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE',
-                configuration_file_path=DEFUALT_CONFIG_FILE):
+                configuration_file_path=CONTRACT_CONFIG_DEFAULT):
     log.debug('Starting event loop')
     loop = asyncio.get_event_loop()
     # TODO: ccxt raises exceptions when the code runs from inside a try-finally for some reason:
