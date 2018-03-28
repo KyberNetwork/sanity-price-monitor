@@ -22,9 +22,16 @@ class Config:
         self.coins = [
             self._prepare_coin_from_config_token(symbol=symbol, params=params)
             for symbol, params in self._config['tokens'].items()
-            if symbol != self.market.symbol
+            if self._filter_market_coin(symbol) and self._filter_internaly_used_coins(params)
         ]
         self.private_key = h2b(private_key)
+
+    def _filter_market_coin(self, symbol):
+        return symbol != self.market.symbol
+
+    @staticmethod
+    def _filter_internaly_used_coins(params):
+        return params['internal use']
 
     def _prepare_coin_from_config_token(self, symbol, params):
         return Coin(symbol=symbol,
