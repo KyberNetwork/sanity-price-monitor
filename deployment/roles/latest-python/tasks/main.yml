@@ -7,7 +7,7 @@
   failed_when: "{{ python_version_result.stdout | replace('Python ', '') | version_compare(python_version, '>=') }}"
 
 - name: Install prerequisites
-  apt: name=python-software-properties state=present
+  apt: name=python3-software-properties state=present
   become: true
 
 - name: Add deadsnakes repo
