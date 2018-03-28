@@ -2,6 +2,7 @@
 - name: get sources
   git:
       repo: 'https://github.com/KyberNetwork/sanity-price-monitor.git'
+      version: '{{ branch | default("master") }}'
       dest: /home/ubuntu/sanity
       recursive: yes
       force: yes
