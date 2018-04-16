@@ -1,9 +1,9 @@
 import json
 import logging.config
 import time
-from collections import namedtuple
 
 import fire
+from collections import namedtuple
 
 from pricemonitor.storing.ethereum_nodes import Network
 from pricemonitor.storing.web3_interface import Web3Interface
@@ -64,11 +64,16 @@ def _prepare_coin_from_config_token(symbol, params):
     return Coin(symbol=symbol, address=params['address'], name=params['name'])
 
 
+def _filter_internally_used(params):
+    return params['internal use']
+
+
 def get_tokens_from_deployment_json(deployment_file_path):
     deployment = _load_config(deployment_file_path)
     tokens = [
         _prepare_coin_from_config_token(symbol=symbol, params=params)
         for symbol, params in deployment['tokens'].items()
+        if _filter_internally_used(params)
     ]
     return {
         token.symbol: token
