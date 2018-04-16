@@ -12,3 +12,4 @@ def setup_logging():
 def _set_external_modules_logging():
     logging.getLogger('asyncio').setLevel(logging.INFO)
     logging.getLogger('urllib3').setLevel(logging.INFO)
+    logging.getLogger('ccxt').setLevel(logging.INFO)
