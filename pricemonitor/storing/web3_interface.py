@@ -14,6 +14,40 @@ INCREASED_GAS_PRICE_FACTOR = 1.1
 log = logging.getLogger(__name__)
 
 
+class EthereumNodeCallError(Exception):
+    def __init__(self, url, method_name, params, response_status, response_reason, response_text, request_headers,
+                 request_body):
+        self.url = url
+        self.method_name = method_name
+        self.params = params
+        self.response_status = response_status
+        self.response_reason = response_reason
+        self.response_text = response_text
+        self.request_headers = request_headers
+        self.request_body = request_body
+
+    def __repr__(self):
+        return f"Received error code {self.response_status} with reason ({self.response_reason}) and text " \
+               f"({self.response_text}) while calling ({self.url}) with headers ({self.request_headers}) and body " \
+               f"({self.request_body})"
+
+
+class EthereumNodeCallNoResultError(Exception):
+    def __init__(self, url, method_name, params, request_headers, request_body, response_text, response_json):
+        self.url = url
+        self.method_name = method_name
+        self.params = params
+        self.request_headers = request_headers
+        self.request_body = request_body
+        self.response_text = response_text
+        self.response_json = response_json
+
+    def __repr__(self):
+        return f"Received no response field in response json data ({self.response_json}), response text is " \
+               f"({self.response_text}) while calling ({self.url}) with headers ({self.request_headers}) and body " \
+               f"({self.request_body})"
+
+
 class Web3Interface:
     # Options for defaultBlock parameter: HEX String of block, "earlist", "latest" and "pending".
     # See https://github.com/ethereum/wiki/wiki/JSON-RPC#the-default-block-parameter
@@ -95,13 +129,32 @@ class Web3Interface:
             "id": 1,
         }
 
-        # logger.debug("Payload: {}".format(payload))
+        log.debug(f"Calling blockchain with payload: {payload}")
         r = requests.post(url=self._network.current_node(), data=json.dumps(payload), headers=headers, timeout=5)
-        assert r.status_code == requests.codes.ok, 'Blockchain connection issue.'
+
+        if not r.ok:
+            e = EthereumNodeCallError(url=r.request.url,
+                                      method_name=method_name,
+                                      params=params,
+                                      response_status=r.status_code,
+                                      response_reason=r.reason,
+                                      response_text=r.text,
+                                      request_headers=r.request.headers,
+                                      request_body=r.request.body)
+            log.warning(repr(e))
+            raise e
+
         data = r.json()
         result = data.get('result', None)
+
         if not result:
-            raise ValueError(data)
+            raise EthereumNodeCallNoResultError(url=r.request.url,
+                                                method_name=method_name,
+                                                params=params,
+                                                request_headers=r.request.headers,
+                                                request_body=r.request.body,
+                                                response_text=r.text,
+                                                response_json=data)
         else:
             return result
 

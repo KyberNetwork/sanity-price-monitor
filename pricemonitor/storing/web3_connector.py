@@ -1,8 +1,10 @@
-# TODO: use correct chain in etherscan
 import logging
 from functools import partial
 
 from pricemonitor.exceptions import PriceMonitorException
+from pricemonitor.storing import node_errors
+from pricemonitor.storing.node_errors import PreviousTransactionPending, NonceAlreadySpent
+from pricemonitor.storing.web3_interface import EthereumNodeCallError, EthereumNodeCallNoResultError
 
 NUMBER_OF_ATTEMPTS_ON_FAILURE = 10
 
@@ -24,10 +26,13 @@ class Web3Connector:
                                                     eth_args=eth_args,
                                                     loop=loop)
                 break
-            except Web3ConnectionError:
+
+            except Web3ConnectionError as e:
+                log.warning(f"Error accessing Ethereum node: {e}")
                 self._web3_interface.use_next_node()
+
         else:
-            log.warning('Tried multiple times to access Ethereum nodes. Giving up.')
+            log.error("Tried multiple times to access Ethereum nodes. Giving up.")
             return None
 
         log.debug(f"{function_name}({eth_args})\n\t-> {rs}")
@@ -43,16 +48,21 @@ class Web3Connector:
                                                     loop=loop,
                                                     use_increased_gas_price=use_increased_gas_price)
                 break
-            except Web3ConnectionError:
+
+            except Web3ConnectionError as e:
+                log.warning(f"Error accessing Ethereum node: {e}")
                 self._web3_interface.use_next_node()
+
             except PreviousTransactionPending:
                 use_increased_gas_price = True
                 log.debug('Previous transaction failed - pending tx with same nonce, sending with higher gas price')
+
             except NonceAlreadySpent:
                 use_increased_gas_price = False
                 log.debug('Previous transaction failed - nonce used for committed tx, sending again')
+
         else:
-            log.warning('Tried multiple times to access Ethereum nodes. Giving up.')
+            log.error('Tried multiple times to access Ethereum nodes. Giving up.')
             return None
 
         log.info(f"{function_name}({eth_args})\n\t-> {rs} ({self._web3_interface.prepare_etherscan_url(rs)})")
@@ -68,32 +78,33 @@ class Web3Connector:
         try:
             rs = await loop.run_in_executor(executor=None, func=web3call)
             return rs
-        except IOError as e:
+
+        except (IOError, EthereumNodeCallError) as e:
             msg = "Error accessing Ethereum node"
             log.exception(msg)
             raise Web3ConnectionError(msg, call_function, function_name, eth_args) from e
-        except ValueError as e:
-            log.debug(f'Got ValueError: {e}')
-            error_message = e.args[0]['error']['message']
-            if error_message.startswith('Transaction gas price is too low'):
-                # {'jsonrpc': '2.0', 'error': {'code': -32010, 'message': 'Transaction gas price is too low. There is another transaction with same nonce in the queue. Try increasing the gas price or incrementing the nonce.'}, 'id': 1}
+
+        except EthereumNodeCallNoResultError as e:
+            log.debug(f'Got EthereumNodeCallNoResultError: {repr(e)}')
+            error_message = e.response_json['error']['message']
+
+            if node_errors.detect_replacing_tx_low_gas_price(error_message):
                 raise PreviousTransactionPending() from e
-            elif error_message.startswith('Transaction nonce is too low'):
-                # {'jsonrpc': '2.0', 'error': {'code': -32010, 'message': 'Transaction nonce is too low. Try incrementing the nonce.'}, 'id': 1}
+
+            if node_errors.detect_nonce_too_low(error_message):
                 raise NonceAlreadySpent() from e
+
             else:
                 raise
 
 
-class PreviousTransactionPending(RuntimeError, PriceMonitorException):
-    pass
-
-
-class NonceAlreadySpent(RuntimeError, PriceMonitorException):
-    pass
-
-
-class Web3ConnectionError(RuntimeError):
-    def __init__(self, msg, call_function, function_name, eth_args):
+class Web3ConnectionError(Exception, PriceMonitorException):
+    def __init__(self, msg, call_function, function_name, eth_args, *args, **kwargs):
         super().__init__(
-            f"{msg} (call_function={call_function.__name__}, function_name={function_name}, args={eth_args})")
+            f"{msg} (call_function={call_function.__name__}, function_name={function_name}, args={eth_args}) "
+            f"additional data: {args}, {kwargs}")
+        self.msg = msg
+        self.call_function = call_function
+        self.eth_args = eth_args
+        self._additional_args = args
+        self._additional_kwargs = kwargs

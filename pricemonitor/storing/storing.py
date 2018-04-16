@@ -1,7 +1,8 @@
 import asyncio
 import logging
 
-from pricemonitor.storing.web3_connector import Web3ConnectionError, PreviousTransactionPending
+from pricemonitor.storing.node_errors import PreviousTransactionPending
+from pricemonitor.storing.web3_connector import Web3ConnectionError
 
 log = logging.getLogger(__name__)
 

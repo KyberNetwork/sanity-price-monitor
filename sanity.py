@@ -17,6 +17,6 @@ if __name__ == '__main__':
     while True:
         try:
             fire.Fire(pricemonitor.monitor.run_on_loop)
-        except Exception as e:
-            log.exception("Crashed with this exception: ", e)
+        except Exception:
+            log.exception("Crashed with this exception:")
             time.sleep(WAITING_TIME_IN_SECONDS_BEFORE_RESTARTING_AFTER_CRASH)
