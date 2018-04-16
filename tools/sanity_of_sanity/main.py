@@ -105,8 +105,8 @@ def main(deployment_file_path, main_contract_address=MAIN_CONTRACT_ADDRESS, main
             logger.info(f'values: {now}')
             logger.info(
                 f'diff above 10%: {active_with_diff_above_10_percent}, number of such diffs is {diff_above_10_percent_counter}')
-        except Exception as e:
-            logger.exception("Crashed with this exception: ", e)
+        except Exception:
+            logger.exception("Crashed with this exception:")
             c.node_failed()
             time.sleep(WAITING_TIME_IN_SECONDS_BEFORE_RESTARTING_AFTER_CRASH)
 

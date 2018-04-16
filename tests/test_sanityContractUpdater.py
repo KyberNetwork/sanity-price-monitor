@@ -4,8 +4,8 @@ import os
 import pytest
 
 from pricemonitor.config import Coin
+from pricemonitor.storing.node_errors import PreviousTransactionPending
 from pricemonitor.storing.storing import SanityContractUpdater, ContractRateArgumentsConverter
-from pricemonitor.storing.web3_connector import PreviousTransactionPending
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
