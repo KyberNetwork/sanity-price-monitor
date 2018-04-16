@@ -1,4 +1,4 @@
 [submodule "smart-contracts"]
 	path = smart-contracts
 	url = https://github.com/KyberNetwork/smart-contracts.git
-	branch = new_prycto_tokens
+	branch = master
