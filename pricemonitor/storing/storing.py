@@ -79,10 +79,10 @@ class SanityContractUpdater:
     def _prepare_rates_for_update(self, previous_rates, new_rates):
         updates = []
         for (coin, market), price in new_rates:
-            if self._should_update_price(coin,
-                                         market,
-                                         previous_rate=self._get_previous_rate(coin, market, previous_rates),
-                                         current_rate=price):
+            if price and self._should_update_price(coin=coin,
+                                                   market=market,
+                                                   previous_rate=self._get_previous_rate(coin, market, previous_rates),
+                                                   current_rate=price):
                 updates.append(((coin, market), price))
 
         return updates
@@ -97,9 +97,9 @@ class SanityContractUpdater:
             current_change = abs(current_rate - previous_rate) / previous_rate
             should_update = current_change > coin.volatility
 
-        log.debug((f'{coin.symbol + "/" + market.symbol + ":":10} previous={previous_rate:<10.7f} ' +
-                   f'current={current_rate:<10.7f} change={current_change:<10.7f} ' +
-                   f'threshold={coin.volatility:<10.7f} update={should_update}'))
+        log.debug(f'{coin.symbol + "/" + market.symbol + ":":10} previous={previous_rate:<10.7f} ' +
+                  f'current={current_rate:<10.7f} change={current_change:<10.7f} ' +
+                  f'threshold={coin.volatility:<10.7f} update={should_update}')
         return should_update
 
     @staticmethod

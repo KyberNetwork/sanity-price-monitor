@@ -27,8 +27,10 @@ class ExchangePriceMonitor:
         while True:
             start_time = time.time()
 
-            coin_prices = await self._get_data_for_multiple_coins(
-                coins=self._coins, market=self._market, loop=loop, exchange_data_action=exchange_data_action)
+            coin_prices = await self._get_data_for_multiple_coins(coins=self._coins,
+                                                                  market=self._market,
+                                                                  loop=loop,
+                                                                  exchange_data_action=exchange_data_action)
             await monitor_action.act(data=coin_prices, loop=loop)
 
             await asyncio.sleep(calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds), loop=loop)

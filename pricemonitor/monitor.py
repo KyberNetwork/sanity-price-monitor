@@ -12,7 +12,8 @@ from pricemonitor.monitoring.monitor_actions import (
     PrintValuesMonitor,
     PrintValuesAndAverageMonitor,
     ContractUpdaterMonitor,
-    ContractUpdaterMonitorForce)
+    ContractUpdaterMonitorForce
+)
 from pricemonitor.storing.ethereum_nodes import Network
 
 Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_millis')
