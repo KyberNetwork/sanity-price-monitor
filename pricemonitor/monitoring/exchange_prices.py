@@ -36,16 +36,15 @@ class ExchangePriceMonitor:
             await asyncio.sleep(calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds), loop=loop)
 
     async def _get_data_for_multiple_coins(self, coins, market, loop, exchange_data_action):
-        coin_prices_calculations = [
+        coin_prices_calculations = (
             self._get_data_for_single_coin(
                 coin=coin,
                 market=market,
                 loop=loop,
                 exchange_data_action=exchange_data_action)
             for coin in coins
-        ]
-        coin_prices = await asyncio.gather(
-            *(price_calculation for price_calculation in coin_prices_calculations), loop=loop)
+        )
+        coin_prices = await asyncio.gather(*coin_prices_calculations, loop=loop)
         return coin_prices
 
     # TODO: filter pairs that are not traded on the exchange
