@@ -1,6 +1,7 @@
 from typing import List, Dict
 
 from pricemonitor.config import Coin
+from pricemonitor.exceptions import PriceMonitorException
 from pricemonitor.producing.data_producer import DataProducer, PairPrice
 from util import network
 from util.functional import first
@@ -29,12 +30,21 @@ class DigixFeed:
 
     @staticmethod
     def _get_price_from_feed(feed: Dict, symbol) -> int:
-        price_item = first(feed['data'], lambda feed_price: feed_price['symbol'] == symbol)
-        return price_item['price']
+        try:
+            price_item = first(feed['data'], lambda feed_price: feed_price['symbol'] == symbol)
+        except StopIteration:
+            raise DigixFeedError(f'Missing fields in Digix feed, symbol: {symbol}')
+        else:
+            return price_item['price']
 
 
 def _find_digix_coin(coins):
-    return first(coins, lambda coin: coin.symbol == 'DGX')
+    try:
+        digix = first(coins, lambda coin: coin.symbol == 'DGX')
+    except StopIteration:
+        raise CoinError('Missing coin in config: DGX')
+    else:
+        return digix
 
 
 class FeedPrices(DataProducer):
@@ -47,3 +57,11 @@ class FeedPrices(DataProducer):
             # TODO: generalize to handle other feed based tokens
             await self._digix_feed.get_price()
         ]
+
+
+class DigixFeedError(Exception, PriceMonitorException):
+    pass
+
+
+class CoinError(Exception, PriceMonitorException):
+    pass
