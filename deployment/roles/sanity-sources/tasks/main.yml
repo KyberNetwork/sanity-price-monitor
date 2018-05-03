@@ -5,4 +5,5 @@
       version: '{{ branch | default("master") }}'
       dest: /home/ubuntu/sanity
       recursive: yes
+      track_submodules: yes
       force: yes
