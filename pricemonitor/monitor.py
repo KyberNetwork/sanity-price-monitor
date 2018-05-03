@@ -1,22 +1,30 @@
 import asyncio
 import logging.config
+import time
 from collections import namedtuple
 from enum import Enum
 from functools import partial
 
 from pricemonitor.coin_volatility import CoinVolatilityFile
 from pricemonitor.config import Config
-from pricemonitor.datasource.exchanges import Exchange
-from pricemonitor.monitoring.exchange_prices import ExchangePriceMonitor
-from pricemonitor.monitoring.monitor_actions import (
-    PrintValuesMonitor,
-    PrintValuesAndAverageMonitor,
-    ContractUpdaterMonitor,
-    ContractUpdaterMonitorForce
+from pricemonitor.consuming.consumers import (
+    PrintValues,
+    PrintValuesAndAverage,
+    ContractUpdater,
+    ContractUpdaterForce
 )
+from pricemonitor.producing.all_token_prices import AllTokenPrices
+from pricemonitor.producing.exchange_prices import (
+    ExchangePrices,
+    calculate_seconds_left_to_sleep
+)
+from pricemonitor.producing.exchanges import Exchange
 from pricemonitor.storing.ethereum_nodes import Network
 
-Task = namedtuple('TASK', 'exchange_data_action, monitor_action, interval_in_millis')
+Task = namedtuple('TASK', ('data_producer',
+                           'data_producer_params',
+                           'data_consumer',
+                           'interval_in_millis'))
 
 CONTRACT_CONFIG_MAINNET = 'smart-contracts/web3deployment/mainnet_production.json'
 CONTRACT_CONFIG_DEFAULT = CONTRACT_CONFIG_MAINNET
@@ -28,23 +36,27 @@ log = logging.getLogger(__name__)
 
 class Tasks(Enum):
     PRINT_AVERAGE_LAST_MINUTE = Task(
-        exchange_data_action=Exchange.get_last_minute_trades_average_or_last_trade,
-        monitor_action=PrintValuesMonitor,
+        data_producer=ExchangePrices,
+        data_producer_params={'exchange_data_action': Exchange.get_last_minute_trades_average_or_last_trade},
+        data_consumer=PrintValues,
         interval_in_millis=5 * 1_000)
 
     VOLATILITY_EVERY_THIRTY_SECONDS = Task(
-        exchange_data_action=partial(Exchange.get_volatility, time_period=4),
-        monitor_action=PrintValuesAndAverageMonitor,
+        data_producer=ExchangePrices,
+        data_producer_params={'exchange_data_action': partial(Exchange.get_volatility, time_period=4)},
+        data_consumer=PrintValuesAndAverage,
         interval_in_millis=30 * 1_000)
 
     UPDATE_CONTRACT_AVERAGE_LAST_MINUTE = Task(
-        exchange_data_action=Exchange.get_last_minute_trades_average_or_last_trade,
-        monitor_action=ContractUpdaterMonitor,
+        data_producer=AllTokenPrices,
+        data_producer_params={'exchange_data_action': Exchange.get_last_minute_trades_average_or_last_trade},
+        data_consumer=ContractUpdater,
         interval_in_millis=1 * 60 * 1_000)
 
     UPDATE_CONTRACT_AVERAGE_LAST_SECOND_FORCE = Task(
-        exchange_data_action=Exchange.get_last_minute_trades_average_or_last_trade,
-        monitor_action=ContractUpdaterMonitorForce,
+        data_producer=AllTokenPrices,
+        data_producer_params={'exchange_data_action': Exchange.get_last_minute_trades_average_or_last_trade},
+        data_consumer=ContractUpdaterForce,
         interval_in_millis=1 * 1_000)
 
 
@@ -55,11 +67,23 @@ async def main(task, loop, configuration_file_path, contract_address, private_ke
                     network=network,
                     contract_address=contract_address,
                     private_key=private_key)
-    monitor = ExchangePriceMonitor(config.coins, config.market)
-    await monitor.monitor(monitor_action=task.value.monitor_action(config),
+
+    await monitor_forever(data_producer=task.value.data_producer(coins=config.coins,
+                                                                 market=config.market,
+                                                                 **task.value.data_producer_params),
+                          data_consumer=task.value.data_consumer(config),
                           interval_in_milliseconds=task.value.interval_in_millis,
-                          loop=loop,
-                          exchange_data_action=task.value.exchange_data_action)
+                          loop=loop)
+
+
+async def monitor_forever(data_producer, data_consumer, interval_in_milliseconds, loop):
+    while True:
+        start_time = time.time()
+
+        coin_prices = await data_producer.get_data(loop=loop)
+        await data_consumer.act(data=coin_prices, loop=loop)
+
+        await asyncio.sleep(calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds), loop=loop)
 
 
 def run_on_loop(private_key,
