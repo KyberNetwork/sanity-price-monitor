@@ -1,3 +1,4 @@
+import logging
 from typing import List, Dict
 
 from pricemonitor.config import Coin
@@ -5,7 +6,9 @@ from pricemonitor.exceptions import PriceMonitorException
 from pricemonitor.producing.data_producer import DataProducer, PairPrice
 from util import network
 from util.functional import first
-from util.network import DataFormat
+from util.network import DataFormat, NetworkError
+
+log = logging.getLogger(__name__)
 
 
 class DigixFeed:
@@ -17,10 +20,16 @@ class DigixFeed:
         self._digix_coin = digix_coin
 
     async def get_price(self) -> PairPrice:
-        feed = await network.get_response_content_from_get_request(url=self._DIGIX_FEED_URL,
-                                                                   format=DataFormat.JSON)
-        return PairPrice(pair=(self._digix_coin, self._market),
-                         price=await self._calculate_xau_eth_price(feed))
+        try:
+            feed = await network.get_response_content_from_get_request(url=self._DIGIX_FEED_URL,
+                                                                       format=DataFormat.JSON)
+        except NetworkError as e:
+            msg = f'Error getting Digix feed from {self._DIGIX_FEED_URL}'
+            log.exception(msg)
+            raise DigixFeedError(msg) from e
+        else:
+            return PairPrice(pair=(self._digix_coin, self._market),
+                             price=await self._calculate_xau_eth_price(feed))
 
     async def _calculate_xau_eth_price(self, feed):
         xau_usd = self._get_price_from_feed(feed, 'XAUUSD')

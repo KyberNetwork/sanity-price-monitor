@@ -1,4 +1,4 @@
-class PriceMonitorException:
+class PriceMonitorException(BaseException):
     """ Common parent class to all custom exceptions. """
     pass
 
