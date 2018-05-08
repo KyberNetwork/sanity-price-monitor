@@ -19,6 +19,10 @@ class AllTokenPrices(DataProducer):
         self._exchange_prices = ExchangePrices(coins=coins, market=market, exchange_data_action=exchange_data_action)
         self._feed_prices = FeedPrices(coins=coins, market=market)
 
+    async def initialize(self) -> None:
+        await self._exchange_prices.initialize()
+        await self._feed_prices.initialize()
+
     async def get_data(self, loop) -> List[PairPrice]:
         exchange_prices = await self._try_getting_prices(self._exchange_prices, loop)
         feed_prices = await self._try_getting_prices(self._feed_prices, loop)

@@ -61,6 +61,9 @@ class FeedPrices(DataProducer):
         super().__init__(coins=coins, market=market)
         self._digix_feed = DigixFeed(digix_coin=_find_digix_coin(coins), market=market)
 
+    async def initialize(self) -> None:
+        pass
+
     async def get_data(self, loop) -> List[PairPrice]:
         return [
             # TODO: generalize to handle other feed based tokens

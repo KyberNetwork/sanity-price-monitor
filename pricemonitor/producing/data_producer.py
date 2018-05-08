@@ -13,5 +13,9 @@ class DataProducer(ABC):
         self._market = market
 
     @abstractmethod
+    async def initialize(self) -> None:
+        pass
+
+    @abstractmethod
     async def get_data(self, loop) -> List[PairPrice]:
         pass

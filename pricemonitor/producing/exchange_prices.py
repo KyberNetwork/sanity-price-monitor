@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import List
+from typing import List, Optional
 
 from pricemonitor.producing.data_producer import DataProducer, PairPrice
 from pricemonitor.producing.exchanges import Exchange, ExchangeName
@@ -26,12 +26,14 @@ class ExchangePrices(DataProducer):
         if exchanges is None:
             exchanges = self._DEFAULT_EXCHANGES
 
+        self._exchange_names = exchanges
         self._exchange_data_action = exchange_data_action
+        self._exchanges = None  # type: Optional[List[Exchange]]
 
-        # TODO: save exchange.fetch_markets() to ask an exchange for supported pairs only
+    async def initialize(self) -> None:
         self._exchanges = [
-            Exchange.get_exchange(name)
-            for name in exchanges
+            await Exchange.create(name)
+            for name in self._exchange_names
         ]
 
     async def get_data(self, loop) -> List[PairPrice]:

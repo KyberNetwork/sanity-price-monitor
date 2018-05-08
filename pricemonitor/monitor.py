@@ -1,6 +1,7 @@
 import asyncio
 import logging.config
 import time
+from asyncio import AbstractEventLoop
 from collections import namedtuple
 from enum import Enum
 from functools import partial
@@ -11,9 +12,11 @@ from pricemonitor.consuming.consumers import (
     PrintValues,
     PrintValuesAndAverage,
     ContractUpdater,
-    ContractUpdaterForce
+    ContractUpdaterForce,
+    DataConsumer
 )
 from pricemonitor.producing.all_token_prices import AllTokenPrices
+from pricemonitor.producing.data_producer import DataProducer
 from pricemonitor.producing.exchange_prices import (
     ExchangePrices,
     calculate_seconds_left_to_sleep
@@ -60,25 +63,36 @@ class Tasks(Enum):
         interval_in_millis=1 * 1_000)
 
 
-async def main(task, loop, configuration_file_path, contract_address, private_key, network,
-               coin_volatility_path=COIN_VOLATILITY_PATH):
+async def main(task: Tasks,
+               loop: AbstractEventLoop,
+               configuration_file_path: str,
+               contract_address: str,
+               private_key: str,
+               network: Network,
+               coin_volatility_path: str = COIN_VOLATILITY_PATH
+               ) -> None:
     config = Config(configuration_file_path=configuration_file_path,
                     coin_volatility=CoinVolatilityFile(coin_volatility_path),
                     network=network,
                     contract_address=contract_address,
                     private_key=private_key)
 
-    await monitor_forever(data_producer=task.value.data_producer(coins=config.coins,
-                                                                 market=config.market,
-                                                                 **task.value.data_producer_params),
+    producer = task.value.data_producer(coins=config.coins, market=config.market, **task.value.data_producer_params)
+    await producer.initialize()
+    await monitor_forever(data_producer=producer,
                           data_consumer=task.value.data_consumer(config),
                           interval_in_milliseconds=task.value.interval_in_millis,
                           loop=loop)
 
 
-async def monitor_forever(data_producer, data_consumer, interval_in_milliseconds, loop):
+async def monitor_forever(data_producer: DataProducer,
+                          data_consumer: DataConsumer,
+                          interval_in_milliseconds: int,
+                          loop: AbstractEventLoop
+                          ) -> None:
     while True:
         start_time = time.time()
+        log.info('Starting new monitor cycle')
 
         coin_prices = await data_producer.get_data(loop=loop)
         await data_consumer.act(data=coin_prices, loop=loop)
@@ -86,11 +100,11 @@ async def monitor_forever(data_producer, data_consumer, interval_in_milliseconds
         await asyncio.sleep(calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds), loop=loop)
 
 
-def run_on_loop(private_key,
-                contract_address,
-                network_name,
-                task_name='UPDATE_CONTRACT_AVERAGE_LAST_MINUTE',
-                configuration_file_path=CONTRACT_CONFIG_DEFAULT):
+def run_on_loop(private_key: str,
+                contract_address: str,
+                network_name: str,
+                task_name: str = 'UPDATE_CONTRACT_AVERAGE_LAST_MINUTE',
+                configuration_file_path: str = CONTRACT_CONFIG_DEFAULT):
     log.debug('Starting event loop')
     loop = asyncio.get_event_loop()
     # TODO: ccxt raises exceptions when the code runs from inside a try-finally for some reason:
