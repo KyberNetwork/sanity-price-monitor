@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections import namedtuple
 from enum import Enum
 
 import ccxt.async as ccxt
@@ -8,11 +9,15 @@ from util.time import minutes_ago_in_millis_since_epoch
 
 log = logging.getLogger(__name__)
 
+ExchangeData = namedtuple('ExchangeData', ['name', 'config'])
+
 
 class ExchangeName(Enum):
-    BINANCE = ccxt.binance
-    BITTREX = ccxt.bittrex
-    HUOBI = ccxt.huobipro
+    BINANCE = ExchangeData(name=ccxt.binance, config={})
+    BITTREX = ExchangeData(name=ccxt.bittrex, config={})
+    # TODO: enable rate limiting for Huobi
+    # HUOBI = ExchangeData(name=ccxt.huobipro, config={'enableRateLimit': True})
+    HUOBI = ExchangeData(name=ccxt.huobipro, config={})
 
 
 class Exchange:
@@ -73,7 +78,7 @@ class Exchange:
 
     @staticmethod
     def get_exchange(name):
-        return Exchange(name.value())
+        return Exchange(name.value.name(name.value.config))
 
 
 def _prepare_symbol(coin, market):

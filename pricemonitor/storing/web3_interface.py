@@ -163,7 +163,7 @@ class Web3Interface:
 
         See https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_gettransactioncount
         """
-        params = [f"0x{address}", __class__.DEFAULT_BLOCK_LATEST]
+        params = [f"0x{address}", self.DEFAULT_BLOCK_LATEST]
         nonce = self._json_call("eth_getTransactionCount", params)
         return nonce
 

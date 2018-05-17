@@ -5,7 +5,7 @@ import pytest
 from ccxt.base.errors import ExchangeError
 
 from pricemonitor.config import Coin
-from pricemonitor.datasource.exchanges import Exchange, ExchangeName
+from pricemonitor.producing.exchanges import Exchange, ExchangeName
 
 logging.disable(logging.WARNING)
 

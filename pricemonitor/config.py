@@ -33,7 +33,7 @@ class Config:
     def _filter_internaly_used_coins(params):
         return params['internal use']
 
-    def _prepare_coin_from_config_token(self, symbol, params):
+    def _prepare_coin_from_config_token(self, symbol, params) -> Coin:
         return Coin(symbol=symbol,
                     address=params['address'],
                     name=params['name'],
