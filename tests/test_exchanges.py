@@ -149,7 +149,8 @@ async def test_get_volatility__no_trades__returns_0():
     assert 0 == res
 
 
-def test_get_exchange__returns_an_exchange():
-    exchange = Exchange.get_exchange(ExchangeName.BITTREX)
+@pytest.mark.asyncio
+async def test_get_exchange__returns_an_exchange():
+    exchange = await Exchange.create(ExchangeName.BITTREX)
 
     assert isinstance(exchange, Exchange)
