@@ -1,10 +1,13 @@
 import asyncio
+import logging
 import time
 from typing import List, Optional
 
 from pricemonitor.producing.data_producer import DataProducer, PairPrice
 from pricemonitor.producing.exchanges import Exchange, ExchangeName
 from util.calculations import calculate_average
+
+log = logging.getLogger(__name__)
 
 
 def calculate_seconds_left_to_sleep(start_time: float, interval_in_milliseconds: int) -> float:
@@ -37,7 +40,10 @@ class ExchangePrices(DataProducer):
         ]
 
     async def get_data(self, loop) -> List[PairPrice]:
-        return await self._get_data_for_multiple_coins(self._exchange_data_action, loop)
+        log.debug('Preparing exchange data')
+        data = await self._get_data_for_multiple_coins(self._exchange_data_action, loop)
+        log.debug('Finished preparing exchange data')
+        return data
 
     async def _get_data_for_multiple_coins(self, exchange_data_action, loop) -> List[PairPrice]:
         coin_prices_calculations = (

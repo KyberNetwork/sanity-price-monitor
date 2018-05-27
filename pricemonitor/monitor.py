@@ -97,6 +97,7 @@ async def monitor_forever(data_producer: DataProducer,
         coin_prices = await data_producer.get_data(loop=loop)
         await data_consumer.act(data=coin_prices, loop=loop)
 
+        log.info(f'Finished monitor cycle (took {(time.time() - start_time):.1f} seconds), going to sleep.')
         await asyncio.sleep(calculate_seconds_left_to_sleep(start_time, interval_in_milliseconds), loop=loop)
 
 

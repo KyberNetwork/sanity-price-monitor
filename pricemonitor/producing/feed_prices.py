@@ -65,10 +65,13 @@ class FeedPrices(DataProducer):
         pass
 
     async def get_data(self, loop) -> List[PairPrice]:
-        return [
+        log.debug('Preparing feed data')
+        data = [
             # TODO: generalize to handle other feed based tokens
             await self._digix_feed.get_price()
         ]
+        log.debug('Finished preparing feed data')
+        return data
 
 
 class DigixFeedError(Exception, PriceMonitorException):
