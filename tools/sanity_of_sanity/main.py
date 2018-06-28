@@ -101,7 +101,7 @@ def main(deployment_file_path, main_contract_address=MAIN_CONTRACT_ADDRESS, main
             active_with_diff_above_10_percent = [
                 (token, now[token]['diff'])
                 for token in now
-                if now[token]['price'] and now[token]['diff'] > 0.1
+                if now[token]['price'] > 0 and now[token]['diff'] > 0.1
             ]
 
             if active_with_diff_above_10_percent:
@@ -110,10 +110,23 @@ def main(deployment_file_path, main_contract_address=MAIN_CONTRACT_ADDRESS, main
             logger.info(f'values: {now}')
             logger.info(
                 f'diff above 10%: {active_with_diff_above_10_percent}, number of such diffs is {diff_above_10_percent_counter}')
+
+            _log_zero_price_tokens(now)
+
         except Exception:
             logger.exception("Crashed with this exception:")
             c.node_failed()
             time.sleep(WAITING_TIME_IN_SECONDS_BEFORE_RESTARTING_AFTER_CRASH)
+
+
+def _log_zero_price_tokens(now):
+    zero_prices = [
+        token
+        for token in now
+        if now[token]['price'] == 0
+    ]
+    if zero_prices:
+        logger.info(f'tokens with price 0: {zero_prices}')
 
 
 if __name__ == '__main__':
