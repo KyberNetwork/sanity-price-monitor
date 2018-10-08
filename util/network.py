@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Enum, auto, unique
 from json import dumps
 from urllib.parse import urlencode, unquote, urlparse, parse_qsl, ParseResult
 
@@ -9,6 +9,7 @@ from aiohttp import ClientError
 from pricemonitor.exceptions import PriceMonitorException
 
 
+@unique
 class DataFormat(Enum):
     TEXT = auto()
     JSON = auto()
@@ -18,24 +19,32 @@ class NetworkError(Exception, PriceMonitorException):
     pass
 
 
-async def get_response_content_from_get_request(url, headers=None, params=None, timeout=30, format=DataFormat.TEXT):
+async def get_response_content_from_get_request(url, headers=None, params=None,
+                                                timeout=30,
+                                                format=DataFormat.TEXT):
     try:
         async with aiohttp.ClientSession(headers=headers) as session:
             with async_timeout.timeout(timeout):
                 async with session.get(url=url, params=params) as response:
-                    return await response.json() if format == DataFormat.JSON else await response.text()
+                    return (await response.json()
+                            if format == DataFormat.JSON
+                            else await response.text())
     except ClientError as e:
         raise NetworkError from e
 
 
-async def get_response_content_from_post_request(url, headers=None, payload=None, timeout=30, format=DataFormat.TEXT):
+async def get_response_content_from_post_request(url, headers=None,
+                                                 payload=None, timeout=30,
+                                                 format=DataFormat.TEXT):
     if payload is None:
         payload = {}
     try:
         async with aiohttp.ClientSession(headers=headers) as session:
             with async_timeout.timeout(timeout):
                 async with session.post(url=url, data=payload) as response:
-                    return await response.json() if format == DataFormat.JSON else await response.text()
+                    return (await response.json()
+                            if format == DataFormat.JSON
+                            else await response.text())
     except ClientError as e:
         raise NetworkError from e
 
