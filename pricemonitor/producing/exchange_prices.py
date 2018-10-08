@@ -68,5 +68,7 @@ class ExchangePrices(DataProducer):
             for value in await asyncio.gather(*exchange_api_calls, loop=loop)
             if value is not None
         ]
+        log.debug(f'Gathered rates for {coin.symbol}/{market.symbol}: '
+                  + f'{data_from_all_exchanges}')
 
         return PairPrice(pair=(coin, market), price=calculate_average(data_from_all_exchanges))

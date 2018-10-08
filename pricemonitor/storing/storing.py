@@ -106,16 +106,19 @@ class SanityContractUpdater:
                              current_rate: Optional[float]
                              ) -> bool:
         if previous_rate == 0:
-            log.debug(f'{coin.symbol} has no previous rate stored. Updating to current rate.')
+            log.info(f'{coin.symbol} has no previous rate stored. Updating to '
+                     + f'current rate.')
             current_change = 1.0
             should_update = True
         else:
             current_change = abs(current_rate - previous_rate) / previous_rate
             should_update = current_change > coin.volatility
 
-        log.debug(f'{coin.symbol + "/" + market.symbol + ":":10} previous={previous_rate:<10.7f} '
-                  + f'current={current_rate:<10.7f} change={current_change:<10.7f} '
-                  + f'threshold={coin.volatility:<10.7f} update={should_update}')
+        log.info(f'{coin.symbol + "/" + market.symbol + ":":10} '
+                 + f'previous={previous_rate:<10.7f} '
+                 + f'current={current_rate:<10.7f} '
+                 + f'change={current_change:<10.7f} '
+                 + f'threshold={coin.volatility:<10.7f} update={should_update}')
         return should_update
 
     @staticmethod

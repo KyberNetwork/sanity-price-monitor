@@ -53,6 +53,8 @@ class Exchange:
         if last_trades_average is not None:
             return last_trades_average
 
+        log.debug(f'Could not get last minute trades, fetching last trade'
+                  + f'({self._exchange.name}: {coin.symbol}/{market.symbol})')
         return await self.get_last_trade_price(coin, market)
 
     async def get_volatility(self, coin: Coin, market: Coin, time_period_in_minutes: float) -> Optional[float]:
