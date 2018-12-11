@@ -19,7 +19,6 @@ def calculate_seconds_left_to_sleep(start_time: float, interval_in_milliseconds:
 class ExchangePrices(DataProducer):
     _DEFAULT_EXCHANGES = [
         ExchangeName.BINANCE,
-        ExchangeName.BITTREX,
         ExchangeName.HUOBI
     ]
 
