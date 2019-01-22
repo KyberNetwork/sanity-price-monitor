@@ -60,7 +60,7 @@ class DigixFeed(Feed):
             return price_item["price"]
 
 
-class BtcFeed:
+class BtcFeed(Feed):
     """Get ETH -> BTC price from feed"""
 
     _BTC_FEED_URL = "https://api.pro.coinbase.com/products/eth-btc/ticker"
