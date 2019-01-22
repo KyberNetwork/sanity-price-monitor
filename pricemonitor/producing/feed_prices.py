@@ -12,8 +12,8 @@ log = logging.getLogger(__name__)
 
 
 class DigixFeed:
-    _DIGIX_FEED_URL = 'https://datafeed.digix.global/tick/'
-    _OUNCE_TO_GRAM = 31.1034768
+    _DIGIX_FEED_URL = "https://datafeed.digix.global/tick/"
+    _OUNCE_TO_GRAM = 31.103_476_8
 
     def __init__(self, digix_coin: Coin, market: Coin) -> None:
         self._market = market
@@ -21,37 +21,42 @@ class DigixFeed:
 
     async def get_price(self) -> PairPrice:
         try:
-            feed = await network.get_response_content_from_get_request(url=self._DIGIX_FEED_URL,
-                                                                       format=DataFormat.JSON)
+            feed = await network.get_response_content_from_get_request(
+                url=self._DIGIX_FEED_URL, format=DataFormat.JSON
+            )
         except NetworkError as e:
-            msg = f'Error getting Digix feed from {self._DIGIX_FEED_URL}'
+            msg = f"Error getting Digix feed from {self._DIGIX_FEED_URL}"
             log.exception(msg)
             raise DigixFeedError(msg) from e
         else:
-            return PairPrice(pair=(self._digix_coin, self._market),
-                             price=await self._calculate_xau_eth_price(feed))
+            return PairPrice(
+                pair=(self._digix_coin, self._market),
+                price=await self._calculate_xau_eth_price(feed),
+            )
 
     async def _calculate_xau_eth_price(self, feed):
-        xau_usd = self._get_price_from_feed(feed, 'XAUUSD')
-        eth_usd = self._get_price_from_feed(feed, 'ETHUSD')
+        xau_usd = self._get_price_from_feed(feed, "XAUUSD")
+        eth_usd = self._get_price_from_feed(feed, "ETHUSD")
         value = (xau_usd / eth_usd) / self._OUNCE_TO_GRAM
         return value
 
     @staticmethod
     def _get_price_from_feed(feed: Dict, symbol) -> int:
         try:
-            price_item = first(feed['data'], lambda feed_price: feed_price['symbol'] == symbol)
+            price_item = first(
+                feed["data"], lambda feed_price: feed_price["symbol"] == symbol
+            )
         except StopIteration:
-            raise DigixFeedError(f'Missing fields in Digix feed, symbol: {symbol}')
+            raise DigixFeedError(f"Missing fields in Digix feed, symbol: {symbol}")
         else:
-            return price_item['price']
+            return price_item["price"]
 
 
 def _find_digix_coin(coins):
     try:
-        digix = first(coins, lambda coin: coin.symbol == 'DGX')
+        digix = first(coins, lambda coin: coin.symbol == "DGX")
     except StopIteration:
-        raise CoinError('Missing coin in config: DGX')
+        raise CoinError("Missing coin in config: DGX")
     else:
         return digix
 
@@ -65,12 +70,12 @@ class FeedPrices(DataProducer):
         pass
 
     async def get_data(self, loop) -> List[PairPrice]:
-        log.debug('Preparing feed data')
+        log.debug("Preparing feed data")
         data = [
             # TODO: generalize to handle other feed based tokens
             await self._digix_feed.get_price()
         ]
-        log.debug('Finished preparing feed data')
+        log.debug("Finished preparing feed data")
         return data
 
 

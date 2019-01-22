@@ -20,11 +20,17 @@ class EthereumNetwork:
 
 
 class Network(Enum):
-    MAINNET = EthereumNetwork(nodes=['https://mainnet.infura.io',
-                                     'https://api.mycryptoapi.com/eth',
-                                     'https://api.myetherapi.com/eth',
-                                     'https://mew.giveth.io/'],
-                              etherscan_prefix='https://etherscan.io/tx/')
+    MAINNET = EthereumNetwork(
+        nodes=[
+            "https://mainnet.infura.io",
+            "https://api.mycryptoapi.com/eth",
+            "https://api.myetherapi.com/eth",
+            "https://mew.giveth.io/",
+        ],
+        etherscan_prefix="https://etherscan.io/tx/",
+    )
 
-    KOVAN = EthereumNetwork(nodes=['https://kovan.infura.io'],
-                            etherscan_prefix='https://kovan.etherscan.io/tx/')
+    KOVAN = EthereumNetwork(
+        nodes=["https://kovan.infura.io"],
+        etherscan_prefix="https://kovan.etherscan.io/tx/",
+    )

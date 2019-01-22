@@ -4,7 +4,7 @@ from typing import List
 
 from pricemonitor.config import Coin
 
-PairPrice = namedtuple('PairPrice', ['pair', 'price'])
+PairPrice = namedtuple("PairPrice", ["pair", "price"])
 
 
 class DataProducer(ABC):

@@ -11,13 +11,13 @@ from util.time import minutes_ago_in_millis_since_epoch
 
 log = logging.getLogger(__name__)
 
-ExchangeData = namedtuple('ExchangeData', ['name', 'config'])
+ExchangeData = namedtuple("ExchangeData", ["name", "config"])
 
 
 class ExchangeName(Enum):
     BINANCE = ExchangeData(name=ccxt.binance, config={})
     BITTREX = ExchangeData(name=ccxt.bittrex, config={})
-    HUOBI = ExchangeData(name=ccxt.huobipro, config={'enableRateLimit': True})
+    HUOBI = ExchangeData(name=ccxt.huobipro, config={"enableRateLimit": True})
 
 
 class Exchange:
@@ -37,27 +37,39 @@ class Exchange:
             return None
 
         try:
-            trades = await self._exchange.fetch_trades(symbol=_prepare_symbol(coin, market), limit=1)
-            return trades[0]['price']
+            trades = await self._exchange.fetch_trades(
+                symbol=_prepare_symbol(coin, market), limit=1
+            )
+            return trades[0]["price"]
         except Exception as e:
             log.debug(e)
             # TODO: raise exception instead of returning None
             return None
 
-    async def get_average_of_trades_last_minute(self, coin: Coin, market: Coin) -> Optional[float]:
-        return await self._get_trades_average(coin=coin, market=market, since=minutes_ago_in_millis_since_epoch(1))
+    async def get_average_of_trades_last_minute(
+        self, coin: Coin, market: Coin
+    ) -> Optional[float]:
+        return await self._get_trades_average(
+            coin=coin, market=market, since=minutes_ago_in_millis_since_epoch(1)
+        )
 
-    async def get_last_minute_trades_average_or_last_trade(self, coin: Coin, market: Coin) -> Optional[float]:
+    async def get_last_minute_trades_average_or_last_trade(
+        self, coin: Coin, market: Coin
+    ) -> Optional[float]:
         last_trades_average = await self.get_average_of_trades_last_minute(coin, market)
 
         if last_trades_average is not None:
             return last_trades_average
 
-        log.debug(f'Could not get last minute trades, fetching last trade'
-                  + f'({self._exchange.name}: {coin.symbol}/{market.symbol})')
+        log.debug(
+            f"Could not get last minute trades, fetching last trade"
+            + f"({self._exchange.name}: {coin.symbol}/{market.symbol})"
+        )
         return await self.get_last_trade_price(coin, market)
 
-    async def get_volatility(self, coin: Coin, market: Coin, time_period_in_minutes: float) -> Optional[float]:
+    async def get_volatility(
+        self, coin: Coin, market: Coin, time_period_in_minutes: float
+    ) -> Optional[float]:
         """ Calculates the change (in percentage) between the max and min price over previous X minutes """
         if not self._verify_supported(coin, market):
             # TODO: raise exception instead of returning None
@@ -65,7 +77,9 @@ class Exchange:
 
         try:
             trades = await self._exchange.fetch_trades(
-                symbol=_prepare_symbol(coin, market), since=minutes_ago_in_millis_since_epoch(time_period_in_minutes))
+                symbol=_prepare_symbol(coin, market),
+                since=minutes_ago_in_millis_since_epoch(time_period_in_minutes),
+            )
         except Exception as e:
             log.warning(e)
             # TODO: raise exception instead of returning None
@@ -73,36 +87,33 @@ class Exchange:
 
         if not trades:
             log.info(
-                f"No trades for {coin}/{market} in {self._exchange.name} during past {time_period_in_minutes} minutes")
+                f"No trades for {coin}/{market} in {self._exchange.name} during past {time_period_in_minutes} minutes"
+            )
             return 0
 
-        trade_prices = [trade['price'] for trade in trades]
+        trade_prices = [trade["price"] for trade in trades]
 
         max_price = max(trade_prices)
         min_price = min(trade_prices)
         return abs((max_price - min_price) / max_price) * 100
 
-    async def _get_trades_average(self,
-                                  coin: Coin,
-                                  market: Coin,
-                                  limit: int = None,
-                                  since: float = None
-                                  ) -> Optional[float]:
+    async def _get_trades_average(
+        self, coin: Coin, market: Coin, limit: int = None, since: float = None
+    ) -> Optional[float]:
         if not self._verify_supported(coin, market):
             # TODO: raise exception instead of returning None
             return None
 
         try:
-            trades = await self._exchange.fetch_trades(symbol=_prepare_symbol(coin, market), limit=limit, since=since)
+            trades = await self._exchange.fetch_trades(
+                symbol=_prepare_symbol(coin, market), limit=limit, since=since
+            )
         except Exception as e:
             log.debug(e)
             # TODO: raise exception instead of returning None
             return None
 
-        prices = [
-            trade['price']
-            for trade in trades
-        ]
+        prices = [trade["price"] for trade in trades]
         # TODO: raise exception instead of returning None
         return sum(prices) / len(prices) if prices else None
 
@@ -111,34 +122,35 @@ class Exchange:
 
     async def _get_supported_markets(self) -> Set[Tuple[str, str]]:
         markets = await self._exchange.load_markets()
-        market_set = {
-            tuple(coins.split('/'))
-            for coins in markets.keys()
-        }
+        market_set = {tuple(coins.split("/")) for coins in markets.keys()}
         return market_set
 
     async def update_supported_markets(self) -> None:
-        log.info(f'Updating supported markets for {self._exchange.name}')
+        log.info(f"Updating supported markets for {self._exchange.name}")
         self._supported_markets = await self._get_supported_markets()
 
 
 def _prepare_symbol(coin: Coin, market: Coin) -> str:
-    return f'{coin.symbol}/{market.symbol}'
+    return f"{coin.symbol}/{market.symbol}"
 
 
 async def _test(loop):
     binance = Exchange(ExchangeName.BITTREX)
     for i in range(20):
-        print(await binance.get_last_minute_trades_average_or_last_trade(coin='OMG', market='ETH'))
+        print(
+            await binance.get_last_minute_trades_average_or_last_trade(
+                coin="OMG", market="ETH"
+            )
+        )
         await asyncio.sleep(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     log = logging.getLogger(__name__)
-    log.info('Starting event loop')
+    log.info("Starting event loop")
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(_test(loop))
     finally:
-        log.info('Closing event loop')
+        log.info("Closing event loop")
         loop.close()
