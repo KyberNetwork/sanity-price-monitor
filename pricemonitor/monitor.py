@@ -21,6 +21,8 @@ from pricemonitor.producing.exchange_prices import (
     ExchangePrices,
     calculate_seconds_left_to_sleep,
 )
+from pricemonitor.producing.feed_prices import FeedPrices
+
 from pricemonitor.producing.exchanges import Exchange
 from pricemonitor.storing.ethereum_nodes import Network
 
@@ -39,10 +41,17 @@ log = logging.getLogger(__name__)
 
 class Tasks(Enum):
     PRINT_AVERAGE_LAST_MINUTE = Task(
-        data_producer=ExchangePrices,
+        data_producer=AllTokenPrices,
         data_producer_params={
             "exchange_data_action": Exchange.get_last_minute_trades_average_or_last_trade
         },
+        data_consumer=PrintValues,
+        interval_in_millis=5 * 1000,
+    )
+
+    PRINT_FEED_AVERAGE_LAST_MINUTE = Task(
+        data_producer=FeedPrices,
+        data_producer_params={},
         data_consumer=PrintValues,
         interval_in_millis=5 * 1000,
     )
