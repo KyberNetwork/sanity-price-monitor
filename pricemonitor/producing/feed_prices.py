@@ -94,12 +94,46 @@ class BtcFeed(Feed):
 
         return PairPrice(pair=(self._btc, self._market), price=price)
 
+class DaiFeed(Feed):
+    """Get ETH -> DAI price from feed"""
+
+    _DAI_FEED_URL = "https://api.pro.coinbase.com/products/eth-dai/ticker"
+
+    def __init__(self, coins: Coin, market: Coin, network_access) -> None:
+        self._dai = _find_coin("DAI", coins)
+        self._market = market
+        self._network = network_access
+
+    async def get_price(self) -> PairPrice:
+        """Returns a PairPrice or raises an exception if operation failed"""
+        try:
+            data = await self._network.get_response_content_from_get_request(
+                url=self._DAI_FEED_URL, format=DataFormat.JSON
+            )
+        except NetworkError as e:
+            msg = f"Error getting DAI feed from {self._DAI_FEED_URL}"
+            log.exception(msg)
+            raise DaiFeedError() from e
+
+        try:
+            price = 1 / float(data["price"])
+        except KeyError as e:
+            msg = f"Missing price field in DAI feed from {self._DAI_FEED_URL}"
+            log.exception(msg)
+            raise DaiFeedError() from e
+        except ValueError as e:
+            msg = f"Error value in price field in DAI feed from {self._DAI_FEED_URL}: {data['price']}"
+            log.exception(msg)
+            raise DaiFeedError() from e
+
+        return PairPrice(pair=(self._dai, self._market), price=price)
 
 class FeedPrices(DataProducer):
     def __init__(self, coins: List[Coin], market: Coin) -> None:
         super().__init__(coins=coins, market=market)
         self._digix_feed = DigixFeed(coins=coins, market=market, network_access=network)
         self._btc_feed = BtcFeed(coins=coins, market=market, network_access=network)
+        self._dai_feed = DaiFeed(coins=coins, market=market, network_access=network)
 
     async def initialize(self) -> None:
         pass
@@ -110,6 +144,7 @@ class FeedPrices(DataProducer):
             # TODO: generalize to handle other feed based tokens
             await self._digix_feed.get_price(),
             await self._btc_feed.get_price(),
+            await self._dai_feed.get_price(),
         ]
         log.debug("Finished preparing feed data")
         return data
@@ -122,6 +157,8 @@ class DigixFeedError(Exception, PriceMonitorException):
 class BtcFeedError(Exception, PriceMonitorException):
     pass
 
+class DaiFeedError(Exception, PriceMonitorException):
+    pass
 
 class CoinError(Exception, PriceMonitorException):
     pass
