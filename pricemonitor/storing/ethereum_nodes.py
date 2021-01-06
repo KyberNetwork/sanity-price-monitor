@@ -1,4 +1,5 @@
 import itertools
+import os
 from enum import Enum
 
 
@@ -22,10 +23,12 @@ class EthereumNetwork:
 class Network(Enum):
     MAINNET = EthereumNetwork(
         nodes=[
+	    "https://eth-mainnet.alchemyapi.io/jsonrpc/%s" % os.environ['ALCHEMY_API_KEY'],
+	    "https://mainnet.infura.io/v3/%s" % os.environ['INFURA_API_KEY'],
             "https://mainnet.infura.io",
             "https://api.mycryptoapi.com/eth",
             "https://api.myetherapi.com/eth",
-            "https://mew.giveth.io/",
+            #"https://mew.giveth.io/",
         ],
         etherscan_prefix="https://etherscan.io/tx/",
     )

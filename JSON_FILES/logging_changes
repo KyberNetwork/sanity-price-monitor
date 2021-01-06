@@ -1,0 +1,124 @@
+diff --git a/logging.conf b/logging.conf
+index fe1d133..7f9ba20 100644
+--- a/logging.conf
++++ b/logging.conf
+@@ -13,7 +13,7 @@ level=NOTSET
+ 
+ [handler_loggly]
+ class=loggly.handlers.HTTPSHandler
+-level=INFO
++level=DEBUG
+ formatter=jsonFormat
+ args=('https://logs-01.loggly.com/inputs/e6773ad2-cbd8-4030-9b1d-aa4f7ac18864/tag/python','POST')
+ 
+diff --git a/pricemonitor/producing/all_token_prices.py b/pricemonitor/producing/all_token_prices.py
+index eb95777..15f2be8 100644
+--- a/pricemonitor/producing/all_token_prices.py
++++ b/pricemonitor/producing/all_token_prices.py
+@@ -15,6 +15,11 @@ class AllTokenPrices(DataProducer):
+     def __init__(self, coins: List[Coin], market: Coin, exchange_data_action=None) -> None:
+         super().__init__(coins=coins, market=market)
+ 
++        self._expected_pairs = {
++            f'{coin.symbol}/{self._market.symbol}'
++            for coin
++            in self._coins
++        }
+         # TODO: use data from JSON to call with cex coins and feed coins separately
+         self._exchange_prices = ExchangePrices(coins=coins, market=market, exchange_data_action=exchange_data_action)
+         self._feed_prices = FeedPrices(coins=coins, market=market)
+@@ -28,13 +33,33 @@ class AllTokenPrices(DataProducer):
+         feed_prices = await self._try_getting_prices(self._feed_prices, loop)
+ 
+         # TODO: return an itertools instead of list
+-        return list(itertools.chain(exchange_prices, feed_prices))
++        pair_prices = list(itertools.chain(exchange_prices, feed_prices))
++        self._log_missing_pairs(pair_prices)
++        # XXX remove
++        log.debug([
++            f'{f.symbol}/{s.symbol}: {r}'
++            for (f, s), r
++            in pair_prices
++        ])
++        return pair_prices
++
++    def _log_missing_pairs(self, pair_prices: List[PairPrice]) -> None:
++        pair_names = {
++            f'{pair_price.pair[0].symbol}/{pair_price.pair[1].symbol}'
++            for pair_price
++            in pair_prices
++        }
++        missing_names = self._expected_pairs - pair_names
++        if missing_names:
++            log.warning(f'Error getting prices for: {missing_names}')
+ 
+     @staticmethod
+     async def _try_getting_prices(source: DataProducer, loop) -> List[PairPrice]:
+         try:
+             prices = await source.get_data(loop)
+         except PriceMonitorException:
+-            log.exception('Error getting prices from source')
++            log.exception(f'Error getting prices from source '
++                          + f'{source.__class__}')
+             prices = []
+         return prices
++
+diff --git a/pricemonitor/producing/exchange_prices.py b/pricemonitor/producing/exchange_prices.py
+index 1e132f0..2688f9e 100644
+--- a/pricemonitor/producing/exchange_prices.py
++++ b/pricemonitor/producing/exchange_prices.py
+@@ -68,5 +68,8 @@ class ExchangePrices(DataProducer):
+             for value in await asyncio.gather(*exchange_api_calls, loop=loop)
+             if value is not None
+         ]
++        log.debug(f'Gathered rates for {coin.symbol}/{market.symbol}: '
++                  + f'{data_from_all_exchanges}')
+ 
+         return PairPrice(pair=(coin, market), price=calculate_average(data_from_all_exchanges))
++
+diff --git a/pricemonitor/producing/exchanges.py b/pricemonitor/producing/exchanges.py
+index dacff4c..b051142 100644
+--- a/pricemonitor/producing/exchanges.py
++++ b/pricemonitor/producing/exchanges.py
+@@ -53,6 +53,9 @@ class Exchange:
+         if last_trades_average is not None:
+             return last_trades_average
+ 
++        log.debug(f'Could not get last minute trades, fetching last trade'
++                  + f'({self._exchange.name}: {coin.symbol}/{market.symbol})')
++
+         return await self.get_last_trade_price(coin, market)
+ 
+     async def get_volatility(self, coin: Coin, market: Coin, time_period_in_minutes: float) -> Optional[float]:
+diff --git a/pricemonitor/storing/storing.py b/pricemonitor/storing/storing.py
+index 6085dcb..e40fbd8 100644
+--- a/pricemonitor/storing/storing.py
++++ b/pricemonitor/storing/storing.py
+@@ -106,16 +106,16 @@ class SanityContractUpdater:
+                              current_rate: Optional[float]
+                              ) -> bool:
+         if previous_rate == 0:
+-            log.debug(f'{coin.symbol} has no previous rate stored. Updating to current rate.')
++            log.info(f'{coin.symbol} has no previous rate stored. Updating to current rate.')
+             current_change = 1.0
+             should_update = True
+         else:
+             current_change = abs(current_rate - previous_rate) / previous_rate
+             should_update = current_change > coin.volatility
+ 
+-        log.debug(f'{coin.symbol + "/" + market.symbol + ":":10} previous={previous_rate:<10.7f} '
+-                  + f'current={current_rate:<10.7f} change={current_change:<10.7f} '
+-                  + f'threshold={coin.volatility:<10.7f} update={should_update}')
++        log.info(f'{coin.symbol + "/" + market.symbol + ":":10} previous={previous_rate:<10.7f} '
++                 + f'current={current_rate:<10.7f} change={current_change:<10.7f} '
++                 + f'threshold={coin.volatility:<10.7f} update={should_update}')
+         return should_update
+ 
+     @staticmethod
+diff --git a/smart-contracts b/smart-contracts
+index b7fd6bb..581044f 160000
+--- a/smart-contracts
++++ b/smart-contracts
+@@ -1 +1 @@
+-Subproject commit b7fd6bbafdb7ecef55a11a2f373105fedb00d67e
++Subproject commit 581044f5c3dea8a6278092406c4664dbeac1d6c8
