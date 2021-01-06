@@ -12,7 +12,8 @@ log = logging.getLogger(__name__)
 
 class SanityContractUpdater:
     SET_RATES_FUNCTION_NAME = "setSanityRates"
-    GET_RATE_FUNCTION_NAME = "tokenRate"
+    #GET_RATE_FUNCTION_NAME = "tokenRate"
+    GET_RATE_FUNCTION_NAME = "sanityData"
 
     def __init__(self, web3_connector: Web3Connector, config: Config) -> None:
         self._web3 = web3_connector

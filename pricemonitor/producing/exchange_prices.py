@@ -61,15 +61,29 @@ class ExchangePrices(DataProducer):
     async def _get_data_for_single_coin(
         self, coin, market, loop, exchange_data_action
     ) -> PairPrice:
-        exchange_api_calls = (
-            exchange_data_action(exchange, coin=coin, market=market)
-            for exchange in self._exchanges
+        if coin.symbol == "PNT": return PairPrice(
+            pair=(coin, market), price=None
         )
-        data_from_all_exchanges = [
-            value
-            for value in await asyncio.gather(*exchange_api_calls, loop=loop)
-            if value is not None
-        ]
+        if coin.symbol == "USDC" or coin.symbol == "PAX" or coin.symbol == "USDT" or coin.symbol == "TUSD" or coin.symbol == "BUSD":
+            exchange_api_calls = (
+                exchange_data_action(exchange, coin=market, market=coin)
+                for exchange in self._exchanges
+            )
+            data_from_all_exchanges = [
+                1 / value
+                for value in await asyncio.gather(*exchange_api_calls, loop=loop)
+                if value is not None
+            ]
+        else:
+            exchange_api_calls = (
+                exchange_data_action(exchange, coin=coin, market=market)
+                for exchange in self._exchanges
+            )
+            data_from_all_exchanges = [
+                value
+                for value in await asyncio.gather(*exchange_api_calls, loop=loop)
+                if value is not None
+            ]
         log.debug(
             f"Gathered rates for {coin.symbol}/{market.symbol}: "
             + f"{data_from_all_exchanges}"

@@ -9,7 +9,8 @@ Coin = namedtuple("Coin", "symbol, address, name, volatility")
 class Config:
     _MARKET_SYMBOL = "ETH"
 
-    _CONTRACT_ABI_PATH = "smart-contracts/contracts/abi/SanityRates.abi"
+    #_CONTRACT_ABI_PATH = "smart-contracts/contracts/abi/SanityRates.abi"
+    _CONTRACT_ABI_PATH = "smart-contracts/contracts/abi/SanityRatesGasPrice.abi"
 
     def __init__(
         self,
@@ -24,17 +25,17 @@ class Config:
         self._configuration_file_path = configuration_file_path
         self._coin_volatility = coin_volatility
         self._config = self._load_config()
+        self.private_key = h2b(private_key)
         self.market = self._prepare_coin_from_config_token(
             symbol=Config._MARKET_SYMBOL,
-            params=self._config["tokens"][Config._MARKET_SYMBOL],
+            params=self._config['tokens'][Config._MARKET_SYMBOL]
         )
         self.coins = [
             self._prepare_coin_from_config_token(symbol=symbol, params=params)
-            for symbol, params in self._config["tokens"].items()
+            for symbol, params in self._config['tokens'].items()
             if self._filter_market_coin(symbol)
             and self._filter_internaly_used_coins(params)
         ]
-        self.private_key = h2b(private_key)
 
     def _filter_market_coin(self, symbol):
         return symbol != self.market.symbol
